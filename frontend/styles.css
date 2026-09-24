@@ -1214,3 +1214,138 @@ body {
     border: 1px solid rgba(168, 85, 247, 0.3);
 }
 
+/* ============================================================ */
+/* MULTI-CAMERA MATRIX GRID & FULLSCREEN STYLES                 */
+/* ============================================================ */
+.matrix-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: var(--bg-surface);
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.matrix-grid {
+    display: grid;
+    gap: 1rem;
+    width: 100%;
+}
+
+.matrix-grid.grid-1x1 {
+    grid-template-columns: 1fr;
+}
+
+.matrix-grid.grid-2x2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.matrix-grid.grid-3x2 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.matrix-grid.grid-3x3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 1200px) {
+    .matrix-grid.grid-3x2, .matrix-grid.grid-3x3 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .matrix-grid.grid-2x2, .matrix-grid.grid-3x2, .matrix-grid.grid-3x3 {
+        grid-template-columns: 1fr;
+    }
+}
+
+.matrix-tile {
+    position: relative;
+    background-color: #060911;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    aspect-ratio: 16 / 10;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.matrix-tile.active-primary {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 16px rgba(59, 130, 246, 0.4);
+}
+
+.matrix-tile.threat-alert {
+    border-color: #ef4444 !important;
+    animation: matrixAlertPulse 1s infinite alternate;
+}
+
+@keyframes matrixAlertPulse {
+    0% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.5); }
+    100% { box-shadow: 0 0 24px rgba(239, 68, 68, 0.95); }
+}
+
+.matrix-tile-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 15;
+    background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
+    padding: 0.6rem 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+.matrix-tile-header > * {
+    pointer-events: auto;
+}
+
+.matrix-tile-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 15;
+    background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0) 100%);
+    padding: 0.5rem 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+.matrix-tile-footer > * {
+    pointer-events: auto;
+}
+
+.matrix-stream-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.matrix-tile:fullscreen {
+    aspect-ratio: auto;
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    border: none;
+}
+
+#matrix-viewport:fullscreen {
+    background-color: #000000;
+    padding: 1rem;
+    overflow-y: auto;
+}
+

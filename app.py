@@ -271,6 +271,71 @@ def activate_camera(cam_id):
         return jsonify({"success": True, "camera": dict(cam)})
     return jsonify({"error": "Camera not found"}), 404
 
+@app.route("/api/cameras/<int:cam_id>/video_feed")
+def camera_video_feed(cam_id):
+    """Streams live video for a specific camera in the multi-camera grid."""
+    if cam_id == engine.camera_id:
+        return Response(generate_video_stream(),
+                        mimetype='multipart/x-mixed-replace; boundary=frame')
+    else:
+        def generate_secondary_stream():
+            import cv2
+            import numpy as np
+            
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM cameras WHERE id = ?", (cam_id,))
+            cam_row = cursor.fetchone()
+            conn.close()
+            
+            if not cam_row:
+                return
+                
+            source = str(cam_row["source"]).strip()
+            cam_name = cam_row["name"]
+            
+            while True:
+                # If engine switches to this camera, stream engine frames
+                if cam_id == engine.camera_id:
+                    frame_bytes = engine.get_jpeg_frame()
+                    if frame_bytes is not None:
+                        yield (b'--frame\r\n'
+                               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+                    time.sleep(0.03)
+                    continue
+                    
+                # Otherwise render matrix tile
+                tile = np.full((360, 480, 3), 18, dtype=np.uint8)
+                cv2.rectangle(tile, (5, 5), (475, 355), (35, 45, 65), 1)
+                cv2.putText(tile, f"CAM {cam_id}: {cam_name}", (25, 160), cv2.FONT_HERSHEY_SIMPLEX, 0.58, (240, 240, 240), 1)
+                cv2.putText(tile, "CCTV STANDBY & CONTINUOUS SURVEILLANCE", (25, 190), cv2.FONT_HERSHEY_SIMPLEX, 0.40, (0, 200, 255), 1)
+                cv2.putText(tile, "Click 'Switch Primary' to stream in HD AI engine", (25, 220), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (120, 130, 150), 1)
+                ret_jpg, jpeg = cv2.imencode('.jpg', tile, [int(cv2.IMWRITE_JPEG_QUALITY), 65])
+                if ret_jpg:
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
+                time.sleep(0.5)
+                
+        return Response(generate_secondary_stream(),
+                        mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route("/api/all_zones", methods=["GET"])
+def get_all_zones():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM zones")
+    rows = cursor.fetchall()
+    zones = []
+    for r in rows:
+        z = dict(r)
+        try:
+            z["coords"] = json.loads(z["coords"])
+        except Exception:
+            pass
+        zones.append(z)
+    conn.close()
+    return jsonify({"zones": zones})
+
 @app.route("/api/zones", methods=["GET", "POST"])
 def manage_zones():
     conn = get_db_connection()
@@ -287,8 +352,8 @@ def manage_zones():
         zone_id = data.get("id")
         if zone_id:
             cursor.execute("""
-            UPDATE zones SET name = ?, zone_type = ?, coords = ?, sensitivity = ? WHERE id = ?
-            """, (name, zone_type, coords, sensitivity, zone_id))
+            UPDATE zones SET name = ?, zone_type = ?, coords = ?, sensitivity = ?, camera_id = ? WHERE id = ?
+            """, (name, zone_type, coords, sensitivity, camera_id, zone_id))
         else:
             cursor.execute("""
             INSERT INTO zones (camera_id, name, zone_type, coords, sensitivity)
@@ -300,7 +365,16 @@ def manage_zones():
         conn.close()
         return jsonify({"success": True, "zone_id": zone_id})
         
-    cursor.execute("SELECT * FROM zones WHERE camera_id = ?", (engine.camera_id,))
+    target_camera_id = request.args.get("camera_id")
+    if target_camera_id:
+        try:
+            target_camera_id = int(target_camera_id)
+        except Exception:
+            target_camera_id = engine.camera_id
+    else:
+        target_camera_id = engine.camera_id
+        
+    cursor.execute("SELECT * FROM zones WHERE camera_id = ?", (target_camera_id,))
     rows = cursor.fetchall()
     zones = []
     for r in rows:

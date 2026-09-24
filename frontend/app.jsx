@@ -138,15 +138,19 @@ function App() {
         }
     }, []);
 
-    const fetchZones = useCallback(async () => {
+    const [selectedZoneCameraId, setSelectedZoneCameraId] = useState(null);
+
+    const fetchZones = useCallback(async (camId = null) => {
         try {
-            const res = await fetch('/api/zones');
+            const targetId = camId || selectedZoneCameraId;
+            const url = targetId ? `/api/zones?camera_id=${targetId}` : '/api/zones';
+            const res = await fetch(url);
             const data = await res.json();
             setZones(data.zones || []);
         } catch (e) {
             console.warn('Zones fetch error:', e);
         }
-    }, []);
+    }, [selectedZoneCameraId]);
 
     // Initial load & Polling Loop
     useEffect(() => {
@@ -288,16 +292,17 @@ function App() {
     };
 
     // Apply Zone Preset
-    const handleApplyPreset = async (presetName) => {
+    const handleApplyPreset = async (presetName, camId = null) => {
         try {
+            const targetId = camId || selectedZoneCameraId || (cameras.find(c => c.is_active) ? cameras.find(c => c.is_active).id : 1);
             await fetch('/api/zones/preset', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ preset: presetName })
+                body: JSON.stringify({ preset: presetName, camera_id: targetId })
             });
-            fetchZones();
+            fetchZones(targetId);
             setStreamTimestamp(Date.now());
-            showNotification(`Preset layout applied successfully!`, 'success', 'Zone Calibrated');
+            showNotification(`Preset layout applied for camera!`, 'success', 'Zone Calibrated');
         } catch (e) {
             showNotification('Error applying zone preset.', 'error');
         }
@@ -306,14 +311,15 @@ function App() {
     // Save Custom Zone
     const handleSaveZone = async (zoneData) => {
         try {
+            const targetId = zoneData.camera_id || selectedZoneCameraId || (cameras.find(c => c.is_active) ? cameras.find(c => c.is_active).id : 1);
             await fetch('/api/zones', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(zoneData)
+                body: JSON.stringify({ ...zoneData, camera_id: targetId })
             });
-            fetchZones();
+            fetchZones(targetId);
             setStreamTimestamp(Date.now());
-            showNotification('Detection zone coordinates saved!', 'success');
+            showNotification('Detection zone coordinates saved for camera!', 'success');
         } catch (e) {
             showNotification('Error saving detection zone.', 'error');
         }
@@ -488,6 +494,15 @@ function App() {
                             <i className="fa-solid fa-video"></i>
                             <span>Live Monitor</span>
                             <span className="nav-live-dot"></span>
+                        </button>
+
+                        <button
+                            className={`nav-btn ${activeTab === 'matrix' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('matrix')}
+                        >
+                            <i className="fa-solid fa-table-cells"></i>
+                            <span>Multi-Cam Matrix</span>
+                            <span className="nav-badge-pill">{cameras.length}</span>
                         </button>
 
                         <button
@@ -675,6 +690,23 @@ function App() {
                         onTriggerTest={handleTriggerTest}
                         onToggleAI={handleToggleAI}
                         onUpdateSettings={handleUpdateEngineSettings}
+                        onSwitchTab={setActiveTab}
+                    />
+                )}
+
+                {activeTab === 'matrix' && (
+                    <MultiCamMatrixTab
+                        cameras={cameras}
+                        stats={stats}
+                        events={events}
+                        streamTimestamp={streamTimestamp}
+                        onActivateCamera={handleActivateCamera}
+                        onSwitchTab={setActiveTab}
+                        onCalibrateCamera={(camId) => {
+                            setSelectedZoneCameraId(camId);
+                            fetchZones(camId);
+                            setActiveTab('zone-editor');
+                        }}
                     />
                 )}
 
@@ -694,6 +726,12 @@ function App() {
                 {activeTab === 'zone-editor' && (
                     <ZoneEditorTab
                         zones={zones}
+                        cameras={cameras}
+                        selectedZoneCameraId={selectedZoneCameraId || (cameras.find(c => c.is_active) ? cameras.find(c => c.is_active).id : 1)}
+                        onSelectZoneCamera={(camId) => {
+                            setSelectedZoneCameraId(camId);
+                            fetchZones(camId);
+                        }}
                         streamTimestamp={streamTimestamp}
                         engineState={stats.engine_state}
                         onUpdateSettings={handleUpdateEngineSettings}
@@ -1710,13 +1748,15 @@ function getPointsFromCoords(coords) {
 // -------------------------------------------------------------
 // TAB 4: ZONE EDITOR (4-CORNER DRAGGABLE POLYGON CALIBRATION)
 // -------------------------------------------------------------
-function ZoneEditorTab({ zones, streamTimestamp, engineState, onUpdateSettings, onApplyPreset, onSaveZone, onDeleteZone, onSwitchTab }) {
+function ZoneEditorTab({ zones, cameras = [], selectedZoneCameraId, onSelectZoneCamera, streamTimestamp, engineState, onUpdateSettings, onApplyPreset, onSaveZone, onDeleteZone, onSwitchTab }) {
     const svgRef = useRef(null);
     const [activePreset, setActivePreset] = useState('desk_face_clear');
     const [selectedZoneId, setSelectedZoneId] = useState('new');
     const [name, setName] = useState('Left Shelf Pick Zone');
     const [type, setType] = useState('shelf_zone');
     const [sensitivity, setSensitivity] = useState(0.8);
+    
+    const activeCamera = cameras.find(c => c.id === selectedZoneCameraId) || cameras.find(c => c.is_active) || { id: 1, name: 'Default Camera' };
     
     // 4 Draggable Polygon Corner Points: C1(Top-Left), C2(Top-Right), C3(Bottom-Right), C4(Bottom-Left)
     const [points, setPoints] = useState([
@@ -1857,12 +1897,38 @@ function ZoneEditorTab({ zones, streamTimestamp, engineState, onUpdateSettings, 
 
     return (
         <div className="tab-content zone-calibration-grid">
+            {/* Top Camera Selector Bar */}
+            <div className="panel-card p-2 mb-2 d-flex align-items-center justify-content-between flex-wrap gap-1" style={{ gridColumn: '1 / -1' }}>
+                <div className="d-flex align-items-center gap-2">
+                    <i className="fa-solid fa-camera-rotate text-blue" style={{ fontSize: '1.2rem' }}></i>
+                    <div>
+                        <strong className="font-sm">Camera Layout Selector:</strong>
+                        <span className="text-muted font-xs d-block">Each camera maintains its own independent 4-corner zone polygon layout.</span>
+                    </div>
+                </div>
+                <div className="d-flex align-items-center gap-1">
+                    <span className="font-xs text-muted">Active Calibration Target:</span>
+                    <select
+                        className="form-select"
+                        style={{ minWidth: '260px', fontWeight: 700 }}
+                        value={selectedZoneCameraId}
+                        onChange={(e) => onSelectZoneCamera && onSelectZoneCamera(Number(e.target.value))}
+                    >
+                        {cameras.map(c => (
+                            <option key={c.id} value={c.id}>
+                                {c.name} {c.is_active ? '🟢 (Primary Live)' : ''} &bull; {c.location || 'Store'}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
             {/* Left: Interactive Live Camera View with Draggable 4-Corner Polygon */}
             <div className="panel-card">
                 <div className="panel-header">
                     <div className="panel-title">
                         <i className="fa-solid fa-draw-polygon text-blue"></i>
-                        <span>Live 4-Corner Polygon ROI Drag & Calibration</span>
+                        <span>Live 4-Corner Polygon ROI Drag & Calibration &mdash; {activeCamera.name}</span>
                     </div>
                     <span className="badge-tag confirmed">
                         <i className="fa-solid fa-hand-pointer"></i> Drag Any Corner on Live Feed
@@ -1872,7 +1938,7 @@ function ZoneEditorTab({ zones, streamTimestamp, engineState, onUpdateSettings, 
                 {/* Interactive Video & SVG Overlay Container */}
                 <div className="zone-interactive-container">
                     <img
-                        src={`/api/video_feed?${streamTimestamp}`}
+                        src={`/api/cameras/${activeCamera.id}/video_feed?${streamTimestamp}`}
                         alt="Zone Calibration Live Feed"
                         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                     />
@@ -2209,6 +2275,197 @@ function ZoneEditorTab({ zones, streamTimestamp, engineState, onUpdateSettings, 
                         </button>
                     </form>
                 </div>
+            </div>
+        </div>
+    );
+}
+
+// -------------------------------------------------------------
+// TAB: MULTI-CAMERA MATRIX GRID & FULLSCREEN SECURITY WALL
+// -------------------------------------------------------------
+function MultiCamMatrixTab({ cameras = [], stats = {}, events = [], streamTimestamp, onActivateCamera, onSwitchTab, onCalibrateCamera }) {
+    const [gridLayout, setGridLayout] = useState('grid-3x2');
+
+    const handleToggleMatrixFullscreen = () => {
+        const elem = document.getElementById('matrix-viewport-container');
+        if (!elem) return;
+        if (!document.fullscreenElement) {
+            elem.requestFullscreen().catch(err => console.warn(err));
+        } else {
+            document.exitFullscreen().catch(err => console.warn(err));
+        }
+    };
+
+    const handleToggleTileFullscreen = (tileId) => {
+        const elem = document.getElementById(`matrix-tile-${tileId}`);
+        if (!elem) return;
+        if (!document.fullscreenElement) {
+            elem.requestFullscreen().catch(err => console.warn(err));
+        } else {
+            document.exitFullscreen().catch(err => console.warn(err));
+        }
+    };
+
+    // Find recent threats per camera (within last 12 seconds)
+    const nowMs = Date.now();
+    const recentAlertsByCam = {};
+    events.forEach(evt => {
+        const evtTime = new Date(evt.timestamp).getTime();
+        if (nowMs - evtTime < 14000) {
+            recentAlertsByCam[evt.camera_id] = evt;
+        }
+    });
+
+    return (
+        <div className="tab-content" id="matrix-viewport-container" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            {/* 1. MATRIX TOOLBAR */}
+            <div className="matrix-toolbar">
+                <div className="d-flex align-items-center gap-2">
+                    <i className="fa-solid fa-table-cells text-blue" style={{ fontSize: '1.25rem' }}></i>
+                    <div>
+                        <strong style={{ fontSize: '1rem' }}>Supermarket Multi-Camera CCTV Surveillance Matrix</strong>
+                        <div className="text-muted font-xs">Simultaneous multi-feed surveillance &bull; Real-time AI threat overlay &bull; Fullscreen Security Wall</div>
+                    </div>
+                </div>
+
+                <div className="d-flex align-items-center gap-1 flex-wrap">
+                    {/* Layout Selector */}
+                    <div className="btn-group" style={{ display: 'flex', gap: '2px', backgroundColor: 'var(--bg-primary)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                        <button
+                            className={`btn btn-xs ${gridLayout === 'grid-1x1' ? 'btn-primary' : 'btn-outline'}`}
+                            onClick={() => setGridLayout('grid-1x1')}
+                            title="Single Focused Camera (1x1)"
+                        >
+                            1x1 Single
+                        </button>
+                        <button
+                            className={`btn btn-xs ${gridLayout === 'grid-2x2' ? 'btn-primary' : 'btn-outline'}`}
+                            onClick={() => setGridLayout('grid-2x2')}
+                            title="Quad Screen (2x2 - 4 Cameras)"
+                        >
+                            2x2 (4-Cam)
+                        </button>
+                        <button
+                            className={`btn btn-xs ${gridLayout === 'grid-3x2' ? 'btn-primary' : 'btn-outline'}`}
+                            onClick={() => setGridLayout('grid-3x2')}
+                            title="Supermarket Matrix (3x2 - 6 Cameras)"
+                        >
+                            3x2 (6-Cam)
+                        </button>
+                        <button
+                            className={`btn btn-xs ${gridLayout === 'grid-3x3' ? 'btn-primary' : 'btn-outline'}`}
+                            onClick={() => setGridLayout('grid-3x3')}
+                            title="Enterprise Security Wall (3x3 - 9 Cameras)"
+                        >
+                            3x3 (9-Cam)
+                        </button>
+                    </div>
+
+                    <button
+                        className="btn btn-sm btn-primary"
+                        onClick={handleToggleMatrixFullscreen}
+                        title="Expand Matrix to Fullscreen Wall Monitor"
+                    >
+                        <i className="fa-solid fa-expand"></i> Fullscreen Wall
+                    </button>
+                </div>
+            </div>
+
+            {/* 2. REAL-TIME MULTI-CAMERA TILES GRID */}
+            <div className={`matrix-grid ${gridLayout}`}>
+                {cameras.map(c => {
+                    const isPrimary = c.is_active;
+                    const recentAlert = recentAlertsByCam[c.id];
+                    const isAlerting = Boolean(recentAlert);
+
+                    return (
+                        <div
+                            key={c.id}
+                            id={`matrix-tile-${c.id}`}
+                            className={`matrix-tile ${isPrimary ? 'active-primary' : ''} ${isAlerting ? 'threat-alert' : ''}`}
+                        >
+                            {/* Top Header Overlay */}
+                            <div className="matrix-tile-header">
+                                <div className="d-flex align-items-center gap-1">
+                                    <span style={{
+                                        width: '8px',
+                                        height: '8px',
+                                        borderRadius: '50%',
+                                        backgroundColor: isPrimary ? '#10b981' : '#94a3b8',
+                                        display: 'inline-block',
+                                        boxShadow: isPrimary ? '0 0 6px #10b981' : 'none'
+                                    }}></span>
+                                    <strong style={{ color: '#ffffff', fontSize: '0.82rem', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
+                                        {c.name}
+                                    </strong>
+                                </div>
+
+                                <div className="d-flex align-items-center gap-1">
+                                    {isAlerting && (
+                                        <span className="badge-tag critical font-xs font-bold" style={{ animation: 'bounce 0.8s infinite' }}>
+                                            🚨 THEFT DETECTED
+                                        </span>
+                                    )}
+                                    {isPrimary ? (
+                                        <span className="badge-tag confirmed font-xs">
+                                            PRIMARY AI ({stats.fps || 0} FPS)
+                                        </span>
+                                    ) : (
+                                        <span className="badge-tag pending font-xs">
+                                            STANDBY
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Camera Live Stream Video Feed */}
+                            <img
+                                src={`/api/cameras/${c.id}/video_feed?${streamTimestamp}`}
+                                alt={c.name}
+                                className="matrix-stream-img"
+                                onClick={() => onActivateCamera(c.id)}
+                                style={{ cursor: 'pointer' }}
+                                title="Click to Focus as Primary AI Camera"
+                            />
+
+                            {/* Bottom Action Footer Overlay */}
+                            <div className="matrix-tile-footer">
+                                <div style={{ color: '#cbd5e1', fontSize: '0.72rem', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
+                                    <i className="fa-solid fa-location-dot"></i> {c.location || 'Supermarket Aisle'} &bull; <code>{c.camera_type}</code>
+                                </div>
+
+                                <div className="d-flex gap-1">
+                                    {!isPrimary && (
+                                        <button
+                                            className="btn btn-xs btn-primary"
+                                            onClick={() => onActivateCamera(c.id)}
+                                            style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                                            title="Switch Live AI Detection to this Camera"
+                                        >
+                                            <i className="fa-solid fa-play"></i> Switch Main
+                                        </button>
+                                    )}
+                                    <button
+                                        className="btn btn-xs btn-outline"
+                                        onClick={() => onCalibrateCamera && onCalibrateCamera(c.id)}
+                                        style={{ fontSize: '0.7rem', padding: '2px 6px', backgroundColor: 'rgba(0,0,0,0.6)', color: '#fff' }}
+                                        title="Calibrate 4-Corner Zones specifically for this Camera"
+                                    >
+                                        <i className="fa-solid fa-draw-polygon"></i> Zones
+                                    </button>
+                                    <button
+                                        className="btn btn-xs btn-outline"
+                                        onClick={() => handleToggleTileFullscreen(c.id)}
+                                        style={{ fontSize: '0.7rem', padding: '2px 6px', backgroundColor: 'rgba(0,0,0,0.6)', color: '#fff' }}
+                                        title="Toggle Single Camera Fullscreen"
+                                    >
+                                        <i className="fa-solid fa-expand"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
