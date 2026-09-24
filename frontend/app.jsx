@@ -2292,17 +2292,129 @@ function ZoneEditorTab({ zones, cameras = [], selectedZoneCameraId, onSelectZone
     );
 }
 
+// Matrix Camera Tile with individual snapshot stream and zero socket exhaustion
+function MatrixTile({ c, isPrimary, isAlerting, stats, streamTimestamp, onActivateCamera, onCalibrateCamera, onToggleFullscreen }) {
+    const [snapshotUrl, setSnapshotUrl] = useState(`/api/cameras/${c.id}/snapshot?t=${Date.now()}`);
+
+    useEffect(() => {
+        if (isPrimary) return;
+        const interval = setInterval(() => {
+            setSnapshotUrl(`/api/cameras/${c.id}/snapshot?t=${Date.now()}`);
+        }, 500); // 2 FPS lightweight snapshot poll for non-primary channels
+        return () => clearInterval(interval);
+    }, [c.id, isPrimary]);
+
+    return (
+        <div
+            id={`matrix-tile-${c.id}`}
+            className={`matrix-tile ${isPrimary ? 'active-primary' : ''} ${isAlerting ? 'threat-alert' : ''}`}
+        >
+            {/* Top Header Overlay */}
+            <div className="matrix-tile-header">
+                <div className="d-flex align-items-center gap-1">
+                    <span style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: isPrimary ? '#10b981' : '#38bdf8',
+                        display: 'inline-block',
+                        boxShadow: isPrimary ? '0 0 6px #10b981' : 'none'
+                    }}></span>
+                    <strong style={{ color: '#ffffff', fontSize: '0.82rem', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
+                        {c.name}
+                    </strong>
+                </div>
+
+                <div className="d-flex align-items-center gap-1">
+                    {isAlerting && (
+                        <span className="badge-tag critical font-xs font-bold" style={{ animation: 'bounce 0.8s infinite' }}>
+                            🚨 THEFT DETECTED
+                        </span>
+                    )}
+                    {isPrimary ? (
+                        <span className="badge-tag confirmed font-xs">
+                            PRIMARY AI ({stats.fps || 0} FPS)
+                        </span>
+                    ) : (
+                        <span className="badge-tag pending font-xs" style={{ backgroundColor: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8' }}>
+                            LIVE STANDBY
+                        </span>
+                    )}
+                </div>
+            </div>
+
+            {/* Camera Live Stream / Snapshot Image */}
+            {isPrimary ? (
+                <img
+                    key={`matrix-primary-${c.id}-${streamTimestamp}`}
+                    src={`/api/video_feed?t=${streamTimestamp}`}
+                    alt={c.name}
+                    className="matrix-stream-img"
+                    onClick={() => onActivateCamera(c.id)}
+                    style={{ cursor: 'pointer' }}
+                    title="Active Primary AI Stream"
+                />
+            ) : (
+                <img
+                    src={snapshotUrl}
+                    alt={c.name}
+                    className="matrix-stream-img"
+                    onClick={() => onActivateCamera(c.id)}
+                    style={{ cursor: 'pointer' }}
+                    title="Click to Focus as Primary AI Camera"
+                />
+            )}
+
+            {/* Bottom Action Footer Overlay */}
+            <div className="matrix-tile-footer">
+                <div style={{ color: '#cbd5e1', fontSize: '0.72rem', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
+                    <i className="fa-solid fa-location-dot"></i> {c.location || 'Supermarket Aisle'} &bull; <code>{c.camera_type}</code>
+                </div>
+
+                <div className="d-flex gap-1">
+                    {!isPrimary && (
+                        <button
+                            className="btn btn-xs btn-primary"
+                            onClick={() => onActivateCamera(c.id)}
+                            style={{ fontSize: '0.7rem', padding: '2px 6px' }}
+                            title="Switch Live AI Detection to this Camera"
+                        >
+                            <i className="fa-solid fa-play"></i> Switch Main
+                        </button>
+                    )}
+                    <button
+                        className="btn btn-xs btn-outline"
+                        onClick={() => onCalibrateCamera && onCalibrateCamera(c.id)}
+                        style={{ fontSize: '0.7rem', padding: '2px 6px', backgroundColor: 'rgba(0,0,0,0.6)', color: '#fff' }}
+                        title="Calibrate 4-Corner Zones specifically for this Camera"
+                    >
+                        <i className="fa-solid fa-draw-polygon"></i> Zones
+                    </button>
+                    <button
+                        className="btn btn-xs btn-outline"
+                        onClick={() => onToggleFullscreen(c.id)}
+                        style={{ fontSize: '0.7rem', padding: '2px 6px', backgroundColor: 'rgba(0,0,0,0.6)', color: '#fff' }}
+                        title="Toggle Single Camera Fullscreen"
+                    >
+                        <i className="fa-solid fa-expand"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // -------------------------------------------------------------
-// TAB: MULTI-CAMERA MATRIX GRID & FULLSCREEN SECURITY WALL
+// TAB 3: MULTI-CAMERA MATRIX (SIMULTANEOUS 6-CAM SURVEILLANCE GRID)
 // -------------------------------------------------------------
-function MultiCamMatrixTab({ cameras = [], stats = {}, events = [], streamTimestamp, onActivateCamera, onSwitchTab, onCalibrateCamera }) {
-    const [gridLayout, setGridLayout] = useState('grid-3x2');
+function MultiCamMatrixTab({ cameras = [], stats = {}, events = [], streamTimestamp, onActivateCamera, onCalibrateCamera, onSwitchTab }) {
+    const [gridLayout, setGridLayout] = useState('grid-3x2'); // 'grid-1x1', 'grid-2x2', 'grid-3x2', 'grid-3x3', or 'unified-wall'
 
     const handleToggleMatrixFullscreen = () => {
-        const elem = document.getElementById('matrix-viewport-container');
-        if (!elem) return;
+        const container = document.getElementById('matrix-viewport-container');
+        if (!container) return;
         if (!document.fullscreenElement) {
-            elem.requestFullscreen().catch(err => console.warn(err));
+            container.requestFullscreen().catch(err => console.warn(err));
         } else {
             document.exitFullscreen().catch(err => console.warn(err));
         }
@@ -2318,7 +2430,7 @@ function MultiCamMatrixTab({ cameras = [], stats = {}, events = [], streamTimest
         }
     };
 
-    // Find recent threats per camera (within last 12 seconds)
+    // Find recent threats per camera (within last 14 seconds)
     const nowMs = Date.now();
     const recentAlertsByCam = {};
     events.forEach(evt => {
@@ -2371,6 +2483,13 @@ function MultiCamMatrixTab({ cameras = [], stats = {}, events = [], streamTimest
                         >
                             3x3 (9-Cam)
                         </button>
+                        <button
+                            className={`btn btn-xs ${gridLayout === 'unified-wall' ? 'btn-primary' : 'btn-outline'}`}
+                            onClick={() => setGridLayout('unified-wall')}
+                            title="Single Stitched Composite Wall Stream"
+                        >
+                            <i className="fa-solid fa-tv"></i> Unified Wall
+                        </button>
                     </div>
 
                     <button
@@ -2384,102 +2503,37 @@ function MultiCamMatrixTab({ cameras = [], stats = {}, events = [], streamTimest
             </div>
 
             {/* 2. REAL-TIME MULTI-CAMERA TILES GRID */}
-            <div className={`matrix-grid ${gridLayout}`}>
-                {cameras.map(c => {
-                    const isPrimary = c.is_active;
-                    const recentAlert = recentAlertsByCam[c.id];
-                    const isAlerting = Boolean(recentAlert);
+            {gridLayout === 'unified-wall' ? (
+                <div className="panel-card p-2" style={{ textAlign: 'center', backgroundColor: '#000', borderRadius: '12px', overflow: 'hidden' }}>
+                    <img
+                        src={`/api/matrix_feed?t=${streamTimestamp}`}
+                        alt="Unified 6-Camera Security Wall Stream"
+                        style={{ width: '100%', maxHeight: '78vh', objectFit: 'contain' }}
+                    />
+                </div>
+            ) : (
+                <div className={`matrix-grid ${gridLayout}`}>
+                    {cameras.map(c => {
+                        const isPrimary = c.is_active;
+                        const recentAlert = recentAlertsByCam[c.id];
+                        const isAlerting = Boolean(recentAlert);
 
-                    return (
-                        <div
-                            key={c.id}
-                            id={`matrix-tile-${c.id}`}
-                            className={`matrix-tile ${isPrimary ? 'active-primary' : ''} ${isAlerting ? 'threat-alert' : ''}`}
-                        >
-                            {/* Top Header Overlay */}
-                            <div className="matrix-tile-header">
-                                <div className="d-flex align-items-center gap-1">
-                                    <span style={{
-                                        width: '8px',
-                                        height: '8px',
-                                        borderRadius: '50%',
-                                        backgroundColor: isPrimary ? '#10b981' : '#94a3b8',
-                                        display: 'inline-block',
-                                        boxShadow: isPrimary ? '0 0 6px #10b981' : 'none'
-                                    }}></span>
-                                    <strong style={{ color: '#ffffff', fontSize: '0.82rem', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
-                                        {c.name}
-                                    </strong>
-                                </div>
-
-                                <div className="d-flex align-items-center gap-1">
-                                    {isAlerting && (
-                                        <span className="badge-tag critical font-xs font-bold" style={{ animation: 'bounce 0.8s infinite' }}>
-                                            🚨 THEFT DETECTED
-                                        </span>
-                                    )}
-                                    {isPrimary ? (
-                                        <span className="badge-tag confirmed font-xs">
-                                            PRIMARY AI ({stats.fps || 0} FPS)
-                                        </span>
-                                    ) : (
-                                        <span className="badge-tag pending font-xs">
-                                            STANDBY
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Camera Live Stream Video Feed */}
-                            <img
-                                key={`matrix-tile-${c.id}-${streamTimestamp}`}
-                                src={`/api/cameras/${c.id}/video_feed?t=${streamTimestamp}`}
-                                alt={c.name}
-                                className="matrix-stream-img"
-                                onClick={() => onActivateCamera(c.id)}
-                                style={{ cursor: 'pointer' }}
-                                title="Click to Focus as Primary AI Camera"
+                        return (
+                            <MatrixTile
+                                key={c.id}
+                                c={c}
+                                isPrimary={isPrimary}
+                                isAlerting={isAlerting}
+                                stats={stats}
+                                streamTimestamp={streamTimestamp}
+                                onActivateCamera={onActivateCamera}
+                                onCalibrateCamera={onCalibrateCamera}
+                                onToggleFullscreen={handleToggleTileFullscreen}
                             />
-
-                            {/* Bottom Action Footer Overlay */}
-                            <div className="matrix-tile-footer">
-                                <div style={{ color: '#cbd5e1', fontSize: '0.72rem', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
-                                    <i className="fa-solid fa-location-dot"></i> {c.location || 'Supermarket Aisle'} &bull; <code>{c.camera_type}</code>
-                                </div>
-
-                                <div className="d-flex gap-1">
-                                    {!isPrimary && (
-                                        <button
-                                            className="btn btn-xs btn-primary"
-                                            onClick={() => onActivateCamera(c.id)}
-                                            style={{ fontSize: '0.7rem', padding: '2px 6px' }}
-                                            title="Switch Live AI Detection to this Camera"
-                                        >
-                                            <i className="fa-solid fa-play"></i> Switch Main
-                                        </button>
-                                    )}
-                                    <button
-                                        className="btn btn-xs btn-outline"
-                                        onClick={() => onCalibrateCamera && onCalibrateCamera(c.id)}
-                                        style={{ fontSize: '0.7rem', padding: '2px 6px', backgroundColor: 'rgba(0,0,0,0.6)', color: '#fff' }}
-                                        title="Calibrate 4-Corner Zones specifically for this Camera"
-                                    >
-                                        <i className="fa-solid fa-draw-polygon"></i> Zones
-                                    </button>
-                                    <button
-                                        className="btn btn-xs btn-outline"
-                                        onClick={() => handleToggleTileFullscreen(c.id)}
-                                        style={{ fontSize: '0.7rem', padding: '2px 6px', backgroundColor: 'rgba(0,0,0,0.6)', color: '#fff' }}
-                                        title="Toggle Single Camera Fullscreen"
-                                    >
-                                        <i className="fa-solid fa-expand"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }

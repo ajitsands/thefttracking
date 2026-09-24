@@ -272,87 +272,172 @@ def activate_camera(cam_id):
         return jsonify({"success": True, "camera": cam_dict})
     return jsonify({"error": "Camera not found"}), 404
 
+def get_camera_frame_jpeg(cam_id):
+    """Returns a fresh JPEG frame for a specific camera channel."""
+    import cv2
+    import numpy as np
+    
+    if cam_id == engine.camera_id:
+        frame_bytes = engine.get_jpeg_frame()
+        if frame_bytes:
+            return frame_bytes
+
+    # Fetch camera metadata
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM cameras WHERE id = ?", (cam_id,))
+        cam_row = cursor.fetchone()
+        conn.close()
+    except Exception:
+        cam_row = None
+        
+    cam_name = cam_row["name"] if cam_row else f"Camera {cam_id}"
+    cam_type = cam_row["camera_type"] if cam_row else "cctv"
+    location = (cam_row["location"] if cam_row else None) or "Store Floor"
+    
+    # Generate dynamic live CCTV frame
+    t_sec = time.time()
+    angle = float(cam_id * 35) + t_sec * 1.5
+    tile = np.full((360, 480, 3), 242, dtype=np.uint8)
+    
+    # Floor
+    cv2.rectangle(tile, (0, 240), (480, 360), (215, 218, 222), -1)
+    for gx in range(0, 480, 50):
+        cv2.line(tile, (gx, 240), (gx + 30, 360), (195, 200, 205), 1)
+        
+    # Shelf racks
+    cv2.rectangle(tile, (35, 30), (445, 180), (230, 235, 240), -1)
+    cv2.rectangle(tile, (35, 30), (445, 180), (170, 180, 195), 2)
+    cv2.line(tile, (35, 105), (445, 105), (150, 160, 175), 2)
+    
+    # Stock items on shelf
+    for s_idx, sx in enumerate(range(60, 420, 45)):
+        color_item = (120, 80, 210) if (s_idx + cam_id) % 2 == 0 else (60, 150, 220)
+        cv2.rectangle(tile, (sx, 45), (sx + 32, 98), color_item, -1)
+        cv2.rectangle(tile, (sx, 115), (sx + 32, 172), color_item, -1)
+    
+    # Simulated customer motion in this aisle
+    cx = 240 + int(90 * np.sin(angle * 0.4))
+    cv2.circle(tile, (cx, 195), 18, (170, 130, 110), -1)
+    cv2.ellipse(tile, (cx, 275), (35, 60), 0, 0, 360, (65, 55, 45), -1)
+    
+    # CCTV Header Bar
+    cv2.rectangle(tile, (0, 0), (480, 32), (20, 28, 40), -1)
+    cv2.putText(tile, f"CAM {cam_id}: {cam_name.upper()}", (12, 21), cv2.FONT_HERSHEY_SIMPLEX, 0.44, (255, 255, 255), 1)
+    
+    # Live status pill
+    cv2.circle(tile, (420, 16), 4, (0, 230, 100), -1)
+    cv2.putText(tile, "LIVE", (430, 21), cv2.FONT_HERSHEY_SIMPLEX, 0.38, (0, 230, 100), 1)
+    
+    # Footer Bar
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    cv2.rectangle(tile, (0, 332), (480, 360), (20, 28, 40), -1)
+    cv2.putText(tile, f"{location} | {cam_type.upper()} | {now_str}", (12, 351), cv2.FONT_HERSHEY_SIMPLEX, 0.36, (180, 195, 210), 1)
+    
+    ret_jpg, jpeg = cv2.imencode('.jpg', tile, [int(cv2.IMWRITE_JPEG_QUALITY), 75])
+    return jpeg.tobytes() if ret_jpg else b''
+
+@app.route("/api/cameras/<int:cam_id>/snapshot")
+def camera_snapshot(cam_id):
+    """High-speed discrete snapshot endpoint for multi-camera grid tiles without socket blocking."""
+    jpeg_bytes = get_camera_frame_jpeg(cam_id)
+    return Response(
+        jpeg_bytes,
+        mimetype="image/jpeg",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
+
+@app.route("/api/matrix_feed")
+def matrix_feed():
+    """Unified composite stream stitching all active cameras into a single video wall feed (1 HTTP socket)."""
+    import cv2
+    import numpy as np
+    
+    def generate_matrix_composite():
+        while True:
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM cameras ORDER BY id ASC")
+                cameras = cursor.fetchall()
+                conn.close()
+            except Exception:
+                cameras = []
+                
+            if not cameras:
+                cameras = [{"id": 1, "name": "Camera 1", "camera_type": "webcam", "location": "Store"}]
+                
+            # Create a 3x2 Grid Canvas (960x720)
+            wall = np.full((720, 960, 3), 15, dtype=np.uint8)
+            
+            # Position coordinates for 3x2 grid
+            grid_slots = [
+                (0, 0, 480, 360),     # Row 1, Col 1
+                (480, 0, 480, 360),   # Row 1, Col 2
+                (0, 360, 480, 360),   # Row 2, Col 1
+                (480, 360, 480, 360), # Row 2, Col 2
+                (0, 0, 320, 240),     # Fallbacks if more cams
+                (320, 0, 320, 240),
+            ]
+            
+            # Draw 6-camera 3x2 layout: 3 columns x 2 rows
+            col_w, row_h = 320, 360
+            for idx, cam in enumerate(cameras[:6]):
+                c_id = cam["id"]
+                col_idx = idx % 3
+                row_idx = idx // 3
+                x1 = col_idx * col_w
+                y1 = row_idx * row_h
+                
+                # Fetch frame
+                if c_id == engine.camera_id and engine.latest_frame is not None:
+                    tile_img = cv2.resize(engine.latest_frame, (col_w, row_h))
+                    cv2.rectangle(tile_img, (0, 0), (col_w, row_h), (0, 180, 255), 2)
+                    cv2.putText(tile_img, "PRIMARY AI ACTIVE", (col_w - 145, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 100), 1)
+                else:
+                    jpg_data = get_camera_frame_jpeg(c_id)
+                    nparr = np.frombuffer(jpg_data, np.uint8)
+                    tile_img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                    if tile_img is not None:
+                        tile_img = cv2.resize(tile_img, (col_w, row_h))
+                    else:
+                        tile_img = np.full((row_h, col_w, 3), 30, dtype=np.uint8)
+                        
+                # Border line
+                cv2.rectangle(tile_img, (0, 0), (col_w - 1, row_h - 1), (50, 60, 75), 1)
+                wall[y1:y1 + row_h, x1:x1 + col_w] = tile_img
+                
+            ret_jpg, jpeg = cv2.imencode('.jpg', wall, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+            if ret_jpg:
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
+            time.sleep(0.04) # ~25 FPS composite stream
+            
+    return Response(generate_matrix_composite(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+
 @app.route("/api/cameras/<int:cam_id>/video_feed")
 def camera_video_feed(cam_id):
-    """Streams live video for a specific camera in the multi-camera grid and zone editor."""
+    """Streams live video for a specific camera in single camera views."""
     if cam_id == engine.camera_id:
         return Response(generate_video_stream(),
                         mimetype='multipart/x-mixed-replace; boundary=frame')
     else:
         def generate_secondary_stream():
-            import cv2
-            import numpy as np
-            
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM cameras WHERE id = ?", (cam_id,))
-            cam_row = cursor.fetchone()
-            conn.close()
-            
-            if not cam_row:
-                return
-                
-            source = str(cam_row["source"]).strip()
-            cam_name = cam_row["name"]
-            cam_type = cam_row["camera_type"]
-            location = cam_row["location"] or "Store Floor"
-            
-            # If camera source is demo or webcam, generate dynamic feed
-            angle = float(cam_id * 35)
             while True:
-                # If engine switched to this camera while streaming, stream engine frames directly
                 if cam_id == engine.camera_id:
                     frame_bytes = engine.get_jpeg_frame()
-                    if frame_bytes is not None:
-                        yield (b'--frame\r\n'
-                               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-                    time.sleep(0.02)
-                    continue
-                    
-                # Generate dynamic live CCTV preview frame for secondary camera
-                angle += 0.06
-                tile = np.full((360, 480, 3), 242, dtype=np.uint8)
-                
-                # Floor
-                cv2.rectangle(tile, (0, 240), (480, 360), (215, 218, 222), -1)
-                for gx in range(0, 480, 50):
-                    cv2.line(tile, (gx, 240), (gx + 30, 360), (195, 200, 205), 1)
-                    
-                # Shelf racks
-                cv2.rectangle(tile, (35, 30), (445, 180), (230, 235, 240), -1)
-                cv2.rectangle(tile, (35, 30), (445, 180), (170, 180, 195), 2)
-                cv2.line(tile, (35, 105), (445, 105), (150, 160, 175), 2)
-                
-                # Stock items on shelf
-                for s_idx, sx in enumerate(range(60, 420, 45)):
-                    color_item = (120, 80, 210) if s_idx % 2 == 0 else (60, 150, 220)
-                    cv2.rectangle(tile, (sx, 45), (sx + 32, 98), color_item, -1)
-                    cv2.rectangle(tile, (sx, 115), (sx + 32, 172), color_item, -1)
-                
-                # Simulated customer motion in this aisle
-                cx = 240 + int(90 * np.sin(angle * 0.4))
-                cv2.circle(tile, (cx, 195), 18, (170, 130, 110), -1)
-                cv2.ellipse(tile, (cx, 275), (35, 60), 0, 0, 360, (65, 55, 45), -1)
-                
-                # CCTV Header Bar
-                cv2.rectangle(tile, (0, 0), (480, 32), (20, 28, 40), -1)
-                cv2.putText(tile, f"CAM {cam_id}: {cam_name.upper()}", (12, 21), cv2.FONT_HERSHEY_SIMPLEX, 0.46, (255, 255, 255), 1)
-                
-                # Live status pill
-                cv2.circle(tile, (420, 16), 4, (0, 230, 100), -1)
-                cv2.putText(tile, "LIVE", (430, 21), cv2.FONT_HERSHEY_SIMPLEX, 0.40, (0, 230, 100), 1)
-                
-                # Footer Bar
-                now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                cv2.rectangle(tile, (0, 332), (480, 360), (20, 28, 40), -1)
-                cv2.putText(tile, f"{location} | {cam_type.upper()} | {now_str}", (12, 351), cv2.FONT_HERSHEY_SIMPLEX, 0.38, (180, 195, 210), 1)
-                
-                ret_jpg, jpeg = cv2.imencode('.jpg', tile, [int(cv2.IMWRITE_JPEG_QUALITY), 75])
-                if ret_jpg:
+                else:
+                    frame_bytes = get_camera_frame_jpeg(cam_id)
+                if frame_bytes:
                     yield (b'--frame\r\n'
-                           b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
-                time.sleep(0.06) # ~16fps secondary preview
-                
+                           b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+                time.sleep(0.05)
         return Response(generate_secondary_stream(),
                         mimetype='multipart/x-mixed-replace; boundary=frame')
 
