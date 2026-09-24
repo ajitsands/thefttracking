@@ -215,6 +215,26 @@ function App() {
         }
     };
 
+    // Update AI Engine Settings (Concealment Timing, Sensitivity, Loitering)
+    const handleUpdateEngineSettings = async (newSettings) => {
+        try {
+            const res = await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newSettings)
+            });
+            const data = await res.json();
+            fetchStats();
+            if (newSettings.concealment_timeout !== undefined) {
+                showNotification(`Concealment transfer window set to ${newSettings.concealment_timeout}s`, 'success', 'ROI Timing Calibrated');
+            } else if (newSettings.sensitivity !== undefined) {
+                showNotification(`AI sensitivity adjusted to ${Math.round(newSettings.sensitivity * 100)}%`, 'info');
+            }
+        } catch (e) {
+            showNotification('Error updating engine settings.', 'error');
+        }
+    };
+
     // Activate Camera
     const handleActivateCamera = async (camId) => {
         try {
@@ -654,6 +674,7 @@ function App() {
                         onActivateCamera={handleActivateCamera}
                         onTriggerTest={handleTriggerTest}
                         onToggleAI={handleToggleAI}
+                        onUpdateSettings={handleUpdateEngineSettings}
                     />
                 )}
 
@@ -674,6 +695,8 @@ function App() {
                     <ZoneEditorTab
                         zones={zones}
                         streamTimestamp={streamTimestamp}
+                        engineState={stats.engine_state}
+                        onUpdateSettings={handleUpdateEngineSettings}
                         onApplyPreset={handleApplyPreset}
                         onSaveZone={handleSaveZone}
                         onDeleteZone={handleDeleteZone}
@@ -1163,7 +1186,7 @@ function DashboardTab({ stats, events, cameras, isArmed, streamTimestamp, onActi
 // -------------------------------------------------------------
 // TAB 2: LIVE MONITOR
 // -------------------------------------------------------------
-function LiveMonitorTab({ stats, cameras, streamTimestamp, onActivateCamera, onTriggerTest, onToggleAI }) {
+function LiveMonitorTab({ stats, cameras, streamTimestamp, onActivateCamera, onTriggerTest, onToggleAI, onUpdateSettings }) {
     const isArmed = stats.engine_state ? stats.engine_state.detection_enabled : false;
 
     return (
@@ -1196,10 +1219,25 @@ function LiveMonitorTab({ stats, cameras, streamTimestamp, onActivateCamera, onT
                             style={{ maxHeight: '440px' }}
                         />
                     </div>
-                    <div className="panel-footer d-flex justify-content-between font-xs">
+                    <div className="panel-footer d-flex justify-content-between align-items-center font-xs flex-wrap gap-1">
                         <div><span className="text-muted">Camera:</span> <strong>{stats.active_camera}</strong></div>
                         <div><span className="text-muted">FPS:</span> <strong>{stats.fps || 0}</strong></div>
-                        <div><span className="text-muted">AI Engine:</span> <strong className="text-green">MOG2 + Heuristic Vector</strong></div>
+                        <div className="d-flex align-items-center gap-1">
+                            <span className="text-muted"><i className="fa-solid fa-stopwatch text-red"></i> Concealment Window:</span>
+                            <select
+                                className="form-select"
+                                style={{ width: 'auto', padding: '1px 6px', fontSize: '0.72rem', height: '24px' }}
+                                value={stats.engine_state?.concealment_timeout || 3.0}
+                                onChange={(e) => onUpdateSettings && onUpdateSettings({ concealment_timeout: parseFloat(e.target.value) })}
+                            >
+                                <option value={1.5}>1.5s (Ultra Fast)</option>
+                                <option value={3.0}>3.0s (Strict / Default)</option>
+                                <option value={5.0}>5.0s (Normal)</option>
+                                <option value={8.0}>8.0s (Relaxed)</option>
+                                <option value={10.0}>10.0s (Extended)</option>
+                                <option value={15.0}>15.0s (Wide Area)</option>
+                            </select>
+                        </div>
                         <div><span className="text-muted">Ring Buffer:</span> <strong className="text-blue">90 Frames (~3.5s Pre-buffer)</strong></div>
                     </div>
                 </div>
@@ -1672,7 +1710,7 @@ function getPointsFromCoords(coords) {
 // -------------------------------------------------------------
 // TAB 4: ZONE EDITOR (4-CORNER DRAGGABLE POLYGON CALIBRATION)
 // -------------------------------------------------------------
-function ZoneEditorTab({ zones, streamTimestamp, onApplyPreset, onSaveZone, onDeleteZone, onSwitchTab }) {
+function ZoneEditorTab({ zones, streamTimestamp, engineState, onUpdateSettings, onApplyPreset, onSaveZone, onDeleteZone, onSwitchTab }) {
     const svgRef = useRef(null);
     const [activePreset, setActivePreset] = useState('desk_face_clear');
     const [selectedZoneId, setSelectedZoneId] = useState('new');
@@ -2094,6 +2132,60 @@ function ZoneEditorTab({ zones, streamTimestamp, onApplyPreset, onSaveZone, onDe
                                         </div>
                                     );
                                 })}
+                            </div>
+                        </div>
+
+                        {/* Concealment Transfer Timing Window Calibration (User Adjustable 1s - 15s) */}
+                        <div className="p-2 mb-2" style={{ backgroundColor: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '8px' }}>
+                            <div className="d-flex align-items-center justify-content-between mb-1">
+                                <div className="d-flex align-items-center gap-1">
+                                    <i className="fa-solid fa-stopwatch text-red"></i>
+                                    <strong className="font-xs" style={{ color: '#ef4444' }}>Concealment ROI Transfer Timing Window:</strong>
+                                </div>
+                                <span className="badge-tag critical font-xs font-bold">
+                                    {engineState?.concealment_timeout || 3.0}s Limit
+                                </span>
+                            </div>
+                            <p className="font-xs text-muted mb-2" style={{ lineHeight: 1.3 }}>
+                                Trigger window for hand moving from <strong>Shelf (Yellow)</strong> into <strong>Concealment Pocket (Red)</strong>. If transfer completes within this time, a theft alert is triggered.
+                            </p>
+                            
+                            {/* Quick Presets */}
+                            <div className="d-flex flex-wrap gap-1 mb-2">
+                                {[
+                                    { label: '3s (Fast/Strict)', val: 3.0 },
+                                    { label: '5s (Normal)', val: 5.0 },
+                                    { label: '8s (Relaxed)', val: 8.0 },
+                                    { label: '10s (Extended)', val: 10.0 },
+                                    { label: '15s (Wide Area)', val: 15.0 }
+                                ].map(preset => (
+                                    <button
+                                        key={preset.val}
+                                        type="button"
+                                        className={`btn btn-xs ${Math.abs((engineState?.concealment_timeout || 3.0) - preset.val) < 0.1 ? 'btn-danger' : 'btn-outline'}`}
+                                        onClick={() => onUpdateSettings && onUpdateSettings({ concealment_timeout: preset.val })}
+                                        style={{ fontSize: '0.72rem', padding: '2px 7px' }}
+                                    >
+                                        {preset.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Range Slider */}
+                            <div className="slider-group m-0">
+                                <div className="d-flex justify-content-between font-xs text-secondary mb-1">
+                                    <span>Fast (1.0s)</span>
+                                    <strong>{engineState?.concealment_timeout || 3.0} Seconds Window</strong>
+                                    <span>Slow (15.0s)</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="1.0"
+                                    max="15.0"
+                                    step="0.5"
+                                    value={engineState?.concealment_timeout || 3.0}
+                                    onChange={(e) => onUpdateSettings && onUpdateSettings({ concealment_timeout: parseFloat(e.target.value) })}
+                                />
                             </div>
                         </div>
 

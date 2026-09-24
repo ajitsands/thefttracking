@@ -127,6 +127,7 @@ def get_stats():
         "engine_state": {
             "sensitivity": engine.sensitivity,
             "loitering_threshold": engine.loitering_threshold,
+            "concealment_timeout": engine.concealment_timeout,
             "detection_enabled": engine.detection_enabled,
             "show_overlays": engine.show_overlays
         }
@@ -450,6 +451,8 @@ def update_settings():
         engine.sensitivity = float(data["sensitivity"])
     if "loitering_threshold" in data:
         engine.loitering_threshold = float(data["loitering_threshold"])
+    if "concealment_timeout" in data:
+        engine.concealment_timeout = max(1.0, min(30.0, float(data["concealment_timeout"])))
     if "detection_enabled" in data:
         engine.detection_enabled = bool(data["detection_enabled"])
     if "show_overlays" in data:
@@ -457,6 +460,7 @@ def update_settings():
     return jsonify({"success": True, "settings": {
         "sensitivity": engine.sensitivity,
         "loitering_threshold": engine.loitering_threshold,
+        "concealment_timeout": engine.concealment_timeout,
         "detection_enabled": engine.detection_enabled,
         "show_overlays": engine.show_overlays
     }})

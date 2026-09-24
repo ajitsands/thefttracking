@@ -109,6 +109,7 @@ class TheftDetectionEngine:
         self.sensitivity = 0.65
         self.detection_enabled = False # Starts in Standby/Preview mode to prevent accidental false alarms
         self.loitering_threshold = 8.0 # seconds
+        self.concealment_timeout = 3.0 # customizable seconds (e.g. 1.0s to 15.0s)
         self.show_overlays = True
         self.camera_turned_off = False
         
@@ -625,38 +626,51 @@ class TheftDetectionEngine:
                 self.shelf_touch_time = now
                 self.shelf_touch_active = True
                 
-            if self.shelf_touch_active and isolated_hand_in_pocket:
+            if self.shelf_touch_active:
                 time_since_shelf = now - self.shelf_touch_time
-                if 0.35 <= time_since_shelf <= 3.2: # Meaningful sequential downward transfer
-                    self.shelf_touch_active = False
-                    
-                    # DYNAMIC MULTI-FACTOR CONFIDENCE SCORE
-                    # Factor 1: Speed Factor (deliberate motion 0.5s - 1.4s gives highest confidence)
-                    if 0.5 <= time_since_shelf <= 1.4:
-                        speed_score = 0.94
-                    elif time_since_shelf < 0.5:
-                        speed_score = 0.82
-                    else:
-                        speed_score = max(0.65, 0.94 - (time_since_shelf - 1.4) * 0.15)
+                
+                # Show HUD transfer timer when hand is in transit
+                if self.show_overlays and time_since_shelf <= self.concealment_timeout:
+                    timer_pct = max(0.0, min(1.0, 1.0 - (time_since_shelf / self.concealment_timeout)))
+                    bar_w = int(120 * timer_pct)
+                    cv2.rectangle(display_frame, (20, 435), (20 + 120, 447), (40, 40, 40), -1)
+                    cv2.rectangle(display_frame, (20, 435), (20 + bar_w, 447), (0, 180, 255), -1)
+                    cv2.putText(display_frame, f"TRANSFER: {time_since_shelf:.1f}s / {self.concealment_timeout:.1f}s", 
+                                (20, 430), cv2.FONT_HERSHEY_SIMPLEX, 0.38, (0, 220, 255), 1)
+
+                if isolated_hand_in_pocket:
+                    if 0.30 <= time_since_shelf <= self.concealment_timeout: # Meaningful sequential transfer within user-configured window
+                        self.shelf_touch_active = False
                         
-                    # Factor 2: Motion area consistency
-                    area_score = min(1.0, max(0.70, motion_area_total / 3000.0))
-                    
-                    # Factor 3: Sensitivity Weighting
-                    sens_multiplier = 0.60 + (self.sensitivity * 0.40)
-                    
-                    dynamic_conf = round(min(0.98, max(0.68, (speed_score * 0.60 + area_score * 0.20) * sens_multiplier)), 2)
-                    severity_lvl = "CRITICAL" if dynamic_conf >= 0.88 else "HIGH"
-                    
-                    self._trigger_theft_event(
-                        event_type="CONCEALMENT_DETECTED",
-                        confidence=dynamic_conf,
-                        severity=severity_lvl,
-                        zone_name=active_shelf_name,
-                        clean_frame=clean_frame
-                    )
-            elif now - self.shelf_touch_time > 3.5:
-                self.shelf_touch_active = False
+                        # DYNAMIC MULTI-FACTOR CONFIDENCE SCORE
+                        # Optimal transfer is between 0.4s and 40% of the timeout window
+                        optimal_mid = min(1.4, max(0.8, self.concealment_timeout * 0.4))
+                        if 0.4 <= time_since_shelf <= optimal_mid:
+                            speed_score = 0.94
+                        elif time_since_shelf < 0.4:
+                            speed_score = 0.82
+                        else:
+                            decay_ratio = (time_since_shelf - optimal_mid) / max(0.5, (self.concealment_timeout - optimal_mid))
+                            speed_score = max(0.65, 0.94 - decay_ratio * 0.25)
+                            
+                        # Factor 2: Motion area consistency
+                        area_score = min(1.0, max(0.70, motion_area_total / 3000.0))
+                        
+                        # Factor 3: Sensitivity Weighting
+                        sens_multiplier = 0.60 + (self.sensitivity * 0.40)
+                        
+                        dynamic_conf = round(min(0.98, max(0.68, (speed_score * 0.60 + area_score * 0.20) * sens_multiplier)), 2)
+                        severity_lvl = "CRITICAL" if dynamic_conf >= 0.88 else "HIGH"
+                        
+                        self._trigger_theft_event(
+                            event_type="CONCEALMENT_DETECTED",
+                            confidence=dynamic_conf,
+                            severity=severity_lvl,
+                            zone_name=active_shelf_name,
+                            clean_frame=clean_frame
+                        )
+                elif time_since_shelf > self.concealment_timeout:
+                    self.shelf_touch_active = False
                 
             # Demo mode trigger helper
             if self.cap == "demo" and self.demo_state == "CONCEALMENT_TRIGGER":
