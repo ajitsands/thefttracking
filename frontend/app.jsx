@@ -503,7 +503,16 @@ function App() {
                         </button>
                     </div>
 
-                    <div className="subnav-right-info">
+                    <div className="subnav-right-info d-flex align-items-center gap-1">
+                        <a
+                            href="/documentation.html"
+                            target="_blank"
+                            className="btn btn-xs btn-outline text-blue"
+                            style={{ textDecoration: 'none', fontWeight: 700 }}
+                            title="Open Technical Reference Guide & Zone Manual"
+                        >
+                            <i className="fa-solid fa-book-bookmark"></i> Reference Guide
+                        </a>
                         <span className="db-pill">
                             <i className="fa-solid fa-database"></i> MySQL: theft_control_db
                         </span>
