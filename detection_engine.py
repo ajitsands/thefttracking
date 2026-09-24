@@ -73,6 +73,113 @@ class RealtimeCaptureReader:
                     pass
                 self.raw_cap = None
 
+class HTTPSnapshotReader:
+    """High performance background frame fetcher for Mobile Phone IP Webcam streams."""
+    def __init__(self, base_url):
+        if base_url.endswith("/video"):
+            self.shot_url = base_url.replace("/video", "/shot.jpg")
+        elif not base_url.endswith(".jpg"):
+            self.shot_url = base_url.rstrip("/") + "/shot.jpg"
+        else:
+            self.shot_url = base_url
+            
+        self.lock = threading.Lock()
+        self.latest_frame = None
+        self.running = True
+        self.last_frame_time = time.time()
+        self.thread = threading.Thread(target=self._worker, daemon=True)
+        self.thread.start()
+
+    def _worker(self):
+        import urllib.request
+        while self.running:
+            try:
+                req = urllib.request.Request(self.shot_url, headers={"User-Agent": "AegisVision-CCTV"})
+                resp = urllib.request.urlopen(req, timeout=1.2)
+                img_data = resp.read()
+                if img_data:
+                    nparr = np.frombuffer(img_data, np.uint8)
+                    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                    if frame is not None:
+                        frame = cv2.resize(frame, (640, 480))
+                        with self.lock:
+                            self.latest_frame = frame
+                            self.last_frame_time = time.time()
+                time.sleep(0.06) # ~16 FPS for background mobile IP preview
+            except Exception:
+                time.sleep(0.5)
+
+    def read(self):
+        with self.lock:
+            if self.latest_frame is None:
+                if time.time() - self.last_frame_time > 6.0:
+                    return False, None
+                return None, None
+            return True, self.latest_frame
+
+    def release(self):
+        self.running = False
+
+class MultiSourceStreamHub:
+    """Manages concurrent background frame streams for all connected physical cameras (Webcam, RTSP, IP Cam)."""
+    def __init__(self):
+        self.readers = {}
+        self.lock = threading.Lock()
+
+    def get_frame(self, cam_id, source):
+        src = str(source).strip()
+        if src.lower() in ("demo", "-1"):
+            return None # Fallback to synthetic demo generator
+            
+        with self.lock:
+            if cam_id not in self.readers:
+                self.readers[cam_id] = self._create_reader(src)
+            reader = self.readers[cam_id]
+            
+        if reader is not None:
+            ret, frame = reader.read()
+            if ret and frame is not None:
+                return frame
+            elif ret is False:
+                # Reconnect
+                with self.lock:
+                    if cam_id in self.readers:
+                        try:
+                            self.readers[cam_id].release()
+                        except Exception:
+                            pass
+                        del self.readers[cam_id]
+        return None
+
+    def _create_reader(self, source):
+        try:
+            if source.isdigit():
+                cap = cv2.VideoCapture(int(source), cv2.CAP_DSHOW)
+                if not cap.isOpened():
+                    cap = cv2.VideoCapture(int(source))
+                if cap and cap.isOpened():
+                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+                    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                    return RealtimeCaptureReader(cap)
+            elif source.startswith("http://") or source.startswith("https://"):
+                return HTTPSnapshotReader(source)
+            else:
+                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|threads;1|fflags;nobuffer|flags;low_delay"
+                cap = cv2.VideoCapture(source, cv2.CAP_FFMPEG)
+                if not cap.isOpened():
+                    cap = cv2.VideoCapture(source)
+                if cap and cap.isOpened():
+                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+                    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                    return RealtimeCaptureReader(cap)
+        except Exception as e:
+            print(f"[MultiSourceStreamHub] Error creating reader for {source}: {e}")
+        return None
+
+stream_hub = MultiSourceStreamHub()
+
 class TheftDetectionEngine:
     def __init__(self):
         self.running = False

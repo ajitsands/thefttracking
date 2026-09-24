@@ -6,7 +6,7 @@ from decimal import Decimal
 from flask import Flask, Response, jsonify, request, send_from_directory, render_template
 from flask_cors import CORS
 from database import get_db_connection, init_db
-from detection_engine import engine, CLIPS_DIR, SNAPSHOTS_DIR, STORAGE_DIR
+from detection_engine import engine, stream_hub, CLIPS_DIR, SNAPSHOTS_DIR, STORAGE_DIR
 
 app = Flask(__name__, static_folder="frontend", static_url_path="")
 CORS(app)
@@ -295,8 +295,27 @@ def get_camera_frame_jpeg(cam_id):
     cam_name = cam_row["name"] if cam_row else f"Camera {cam_id}"
     cam_type = cam_row["camera_type"] if cam_row else "cctv"
     location = (cam_row["location"] if cam_row else None) or "Store Floor"
+    source = cam_row["source"] if cam_row else "demo"
     
-    # Generate dynamic live CCTV frame
+    # Try fetching REAL LIVE FRAME from background stream hub
+    real_frame = stream_hub.get_frame(cam_id, source) if cam_row else None
+    if real_frame is not None:
+        tile = cv2.resize(real_frame, (640, 480))
+        # Top banner overlay
+        cv2.rectangle(tile, (0, 0), (640, 34), (15, 20, 30), -1)
+        cv2.putText(tile, f"CAM {cam_id}: {cam_name.upper()}", (12, 23), cv2.FONT_HERSHEY_SIMPLEX, 0.46, (255, 255, 255), 1)
+        cv2.circle(tile, (570, 17), 4, (0, 230, 100), -1)
+        cv2.putText(tile, "LIVE", (582, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.38, (0, 230, 100), 1)
+        # Footer overlay
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cv2.rectangle(tile, (0, 448), (640, 480), (15, 20, 30), -1)
+        cv2.putText(tile, f"{location} | {cam_type.upper()} | {now_str}", (12, 470), cv2.FONT_HERSHEY_SIMPLEX, 0.38, (180, 195, 210), 1)
+        
+        ret_jpg, jpeg = cv2.imencode('.jpg', tile, [int(cv2.IMWRITE_JPEG_QUALITY), 75])
+        if ret_jpg:
+            return jpeg.tobytes()
+
+    # Fallback to dynamic simulation if camera is demo or connecting
     t_sec = time.time()
     angle = float(cam_id * 35) + t_sec * 1.5
     tile = np.full((360, 480, 3), 242, dtype=np.uint8)
@@ -328,7 +347,7 @@ def get_camera_frame_jpeg(cam_id):
     
     # Live status pill
     cv2.circle(tile, (420, 16), 4, (0, 230, 100), -1)
-    cv2.putText(tile, "LIVE", (430, 21), cv2.FONT_HERSHEY_SIMPLEX, 0.38, (0, 230, 100), 1)
+    cv2.putText(tile, "STANDBY", (430, 21), cv2.FONT_HERSHEY_SIMPLEX, 0.38, (0, 230, 100), 1)
     
     # Footer Bar
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
