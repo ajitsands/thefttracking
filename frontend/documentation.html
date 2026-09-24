@@ -3,30 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AegisVision - AI Theft Prevention & CCTV Calibration Reference Guide</title>
+    <title>AegisVision Help & Reference Guide - Supermarket AI CCTV Theft Prevention</title>
     <!-- Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <style>
         :root {
-            --bg-body: #090d16;
-            --bg-card: rgba(18, 24, 38, 0.75);
-            --bg-card-hover: rgba(28, 38, 60, 0.85);
-            --border-color: rgba(255, 255, 255, 0.08);
-            --border-highlight: rgba(59, 130, 246, 0.4);
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-card-hover: #ffffff;
+            --bg-alt: #f1f5f9;
+            --border-color: #e2e8f0;
+            --border-hover: #cbd5e1;
+            --border-highlight: #3b82f6;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
             --text-muted: #64748b;
-            --accent-blue: #3b82f6;
-            --accent-amber: #f59e0b;
-            --accent-red: #ef4444;
-            --accent-cyan: #06b6d4;
-            --accent-purple: #a855f7;
-            --accent-green: #10b981;
+            --accent-blue: #2563eb;
+            --accent-blue-light: #eff6ff;
+            --accent-blue-border: #bfdbfe;
+            --accent-amber: #d97706;
+            --accent-amber-light: #fffbeb;
+            --accent-amber-border: #fde68a;
+            --accent-red: #dc2626;
+            --accent-red-light: #fef2f2;
+            --accent-red-border: #fecaca;
+            --accent-cyan: #0891b2;
+            --accent-cyan-light: #ecfeff;
+            --accent-cyan-border: #a5f3fc;
+            --accent-purple: #9333ea;
+            --accent-purple-light: #faf5ff;
+            --accent-purple-border: #e9d5ff;
+            --accent-green: #16a34a;
+            --accent-green-light: #f0fdf4;
+            --accent-green-border: #bbf7d0;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.08);
             --radius-lg: 16px;
             --radius-md: 12px;
             --radius-sm: 8px;
@@ -43,27 +60,23 @@
             background-color: var(--bg-body);
             color: var(--text-primary);
             line-height: 1.6;
-            padding: 2rem 1.5rem;
-            background-image: 
-                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
-                radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.06) 0%, transparent 40%);
+            padding: 2.5rem 1.5rem;
             min-height: 100vh;
         }
 
         .container {
-            max-width: 1120px;
+            max-width: 1140px;
             margin: 0 auto;
         }
 
         /* HEADER */
         .doc-header {
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+            background: #ffffff;
             border: 1px solid var(--border-color);
             border-radius: var(--radius-lg);
-            padding: 2.5rem 2rem;
-            margin-bottom: 2.5rem;
-            backdrop-filter: blur(12px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            padding: 2.2rem 2.2rem;
+            margin-bottom: 2.2rem;
+            box-shadow: var(--shadow-md);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -78,19 +91,22 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            background: linear-gradient(to right, #ffffff, #93c5fd);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #0f172a;
+        }
+
+        .header-left h1 i {
+            color: var(--accent-blue);
         }
 
         .header-left p {
             color: var(--text-secondary);
             font-size: 0.95rem;
-            margin-top: 0.4rem;
+            margin-top: 0.35rem;
         }
 
         .header-actions {
             display: flex;
+            align-items: center;
             gap: 0.75rem;
         }
 
@@ -98,9 +114,9 @@
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.6rem 1.2rem;
+            padding: 0.65rem 1.25rem;
             border-radius: var(--radius-sm);
-            font-size: 0.85rem;
+            font-size: 0.88rem;
             font-weight: 600;
             text-decoration: none;
             cursor: pointer;
@@ -111,34 +127,67 @@
         .btn-primary {
             background-color: var(--accent-blue);
             color: #ffffff;
-            box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
         }
 
         .btn-primary:hover {
-            background-color: #2563eb;
+            background-color: #1d4ed8;
             transform: translateY(-1px);
         }
 
         .btn-outline {
-            background-color: rgba(255, 255, 255, 0.05);
+            background-color: #ffffff;
             border-color: var(--border-color);
-            color: var(--text-primary);
+            color: var(--text-secondary);
         }
 
         .btn-outline:hover {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: var(--bg-alt);
+            color: var(--text-primary);
+            border-color: var(--border-hover);
+        }
+
+        /* QUICK NAVIGATION PILLS */
+        .quick-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            background: #ffffff;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .quick-nav a {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            background: var(--bg-body);
+            border: 1px solid var(--border-color);
+            transition: all 0.15s ease;
+        }
+
+        .quick-nav a:hover {
+            background: var(--accent-blue-light);
+            color: var(--accent-blue);
+            border-color: var(--accent-blue-border);
         }
 
         /* SECTION HEADINGS */
         .section-title {
             font-size: 1.35rem;
             font-weight: 800;
-            color: #ffffff;
+            color: #0f172a;
             margin: 2.5rem 0 1.25rem 0;
             display: flex;
             align-items: center;
-            gap: 0.6rem;
-            border-bottom: 1px solid var(--border-color);
+            gap: 0.65rem;
+            border-bottom: 2px solid var(--border-color);
             padding-bottom: 0.75rem;
         }
 
@@ -155,11 +204,11 @@
         }
 
         .role-card {
-            background: var(--bg-card);
+            background: #ffffff;
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
-            padding: 1.5rem;
-            backdrop-filter: blur(8px);
+            padding: 1.6rem;
+            box-shadow: var(--shadow-sm);
             transition: all 0.25s ease;
             position: relative;
             overflow: hidden;
@@ -168,9 +217,9 @@
         }
 
         .role-card:hover {
-            background: var(--bg-card-hover);
             transform: translateY(-3px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            box-shadow: var(--shadow-md);
+            border-color: var(--border-hover);
         }
 
         .role-card::before {
@@ -191,47 +240,47 @@
             display: inline-flex;
             align-items: center;
             gap: 0.4rem;
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            padding: 0.25rem 0.6rem;
+            letter-spacing: 0.04em;
+            padding: 0.3rem 0.7rem;
             border-radius: 20px;
             margin-bottom: 1rem;
             width: fit-content;
         }
 
-        .badge-shelf { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.3); }
-        .badge-pocket { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.3); }
-        .badge-checkout { background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.3); }
-        .badge-blindspot { background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); border: 1px solid rgba(168, 85, 247, 0.3); }
+        .badge-shelf { background: var(--accent-amber-light); color: var(--accent-amber); border: 1px solid var(--accent-amber-border); }
+        .badge-pocket { background: var(--accent-red-light); color: var(--accent-red); border: 1px solid var(--accent-red-border); }
+        .badge-checkout { background: var(--accent-cyan-light); color: var(--accent-cyan); border: 1px solid var(--accent-cyan-border); }
+        .badge-blindspot { background: var(--accent-purple-light); color: var(--accent-purple); border: 1px solid var(--accent-purple-border); }
 
         .role-card h3 {
             font-size: 1.15rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
-            color: #ffffff;
+            color: #0f172a;
         }
 
         .role-card p {
             color: var(--text-secondary);
-            font-size: 0.85rem;
-            margin-bottom: 1rem;
+            font-size: 0.88rem;
+            margin-bottom: 1.25rem;
             flex: 1;
         }
 
         .role-specs {
-            background: rgba(0, 0, 0, 0.3);
+            background: var(--bg-body);
             border-radius: var(--radius-sm);
-            padding: 0.75rem;
-            font-size: 0.78rem;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 0.85rem;
+            font-size: 0.8rem;
+            border: 1px solid var(--border-color);
         }
 
         .role-specs div {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 0.35rem;
+            margin-bottom: 0.4rem;
         }
 
         .role-specs div:last-child {
@@ -240,84 +289,98 @@
 
         .role-specs span:first-child {
             color: var(--text-muted);
+            font-weight: 500;
         }
 
         .role-specs span:last-child {
-            font-weight: 600;
+            font-weight: 700;
             color: var(--text-primary);
         }
 
         /* FEATURE PANELS */
         .feature-panel {
-            background: var(--bg-card);
+            background: #ffffff;
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
-            padding: 1.75rem;
+            padding: 1.8rem;
             margin-bottom: 2rem;
-            backdrop-filter: blur(8px);
+            box-shadow: var(--shadow-sm);
         }
 
         .feature-panel h4 {
-            font-size: 1.05rem;
+            font-size: 1.1rem;
             font-weight: 700;
-            color: #ffffff;
-            margin-bottom: 0.75rem;
+            color: #0f172a;
+            margin-bottom: 0.85rem;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.55rem;
+        }
+
+        .feature-panel h4 i {
+            color: var(--accent-blue);
         }
 
         /* TABLES */
         .doc-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.85rem;
+            font-size: 0.88rem;
             margin-top: 1rem;
         }
 
         .doc-table th {
             text-align: left;
-            padding: 0.75rem 1rem;
-            background: rgba(0, 0, 0, 0.35);
-            color: var(--text-secondary);
-            font-weight: 600;
-            border-bottom: 1px solid var(--border-color);
+            padding: 0.85rem 1rem;
+            background: var(--bg-alt);
+            color: var(--text-primary);
+            font-weight: 700;
+            border-bottom: 2px solid var(--border-color);
         }
 
         .doc-table td {
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-            color: var(--text-primary);
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
             vertical-align: top;
         }
 
         .doc-table tr:hover td {
-            background: rgba(255, 255, 255, 0.02);
+            background: #fcfdfe;
         }
 
         /* CODE SNIPPETS */
         code, pre {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
+            font-size: 0.82rem;
         }
 
         code {
-            background: rgba(59, 130, 246, 0.12);
-            color: #93c5fd;
-            padding: 2px 6px;
+            background: var(--accent-blue-light);
+            color: var(--accent-blue);
+            padding: 2px 7px;
             border-radius: 4px;
-            border: 1px solid rgba(59, 130, 246, 0.2);
+            border: 1px solid var(--accent-blue-border);
+            font-weight: 600;
         }
 
         pre {
-            background: #040711;
-            padding: 1rem;
+            background: #0f172a;
+            padding: 1.2rem;
             border-radius: var(--radius-sm);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-color);
             overflow-x: auto;
-            color: #cbd5e1;
-            line-height: 1.5;
-            margin: 0.75rem 0;
+            color: #f1f5f9;
+            line-height: 1.6;
+            margin: 0.85rem 0;
+        }
+
+        pre code {
+            background: transparent !important;
+            border: none !important;
+            color: #f1f5f9 !important;
+            padding: 0 !important;
+            font-weight: 400;
         }
 
         /* VISUAL DIAGRAM */
@@ -325,26 +388,27 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 1.5rem;
+            gap: 1rem;
             flex-wrap: wrap;
             padding: 1.5rem;
-            background: rgba(0, 0, 0, 0.25);
+            background: var(--bg-body);
             border-radius: var(--radius-sm);
             border: 1px dashed var(--border-color);
-            margin: 1rem 0;
+            margin: 1.25rem 0;
         }
 
         .diagram-node {
-            background: var(--bg-body);
+            background: #ffffff;
             border: 1px solid var(--border-color);
-            padding: 1rem 1.25rem;
+            padding: 1.1rem 1.25rem;
             border-radius: var(--radius-sm);
             text-align: center;
             min-width: 180px;
+            box-shadow: var(--shadow-sm);
         }
 
         .diagram-node i {
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             margin-bottom: 0.5rem;
             display: block;
         }
@@ -354,22 +418,43 @@
             font-size: 1.25rem;
         }
 
+        /* ALERT CALLOUTS */
+        .callout-box {
+            background: var(--accent-blue-light);
+            border-left: 4px solid var(--accent-blue);
+            padding: 1rem 1.25rem;
+            border-radius: 4px;
+            margin-top: 1.25rem;
+            font-size: 0.88rem;
+            color: #1e3a8a;
+        }
+
+        .callout-box strong {
+            color: #172554;
+        }
+
         /* FOOTER */
         .doc-footer {
             text-align: center;
             color: var(--text-muted);
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             margin-top: 4rem;
-            padding-top: 1.5rem;
+            padding-top: 1.8rem;
             border-top: 1px solid var(--border-color);
         }
 
         @media (max-width: 768px) {
+            body {
+                padding: 1.25rem 1rem;
+            }
             .doc-header {
                 padding: 1.5rem;
             }
             .roles-grid {
                 grid-template-columns: 1fr;
+            }
+            .diagram-arrow {
+                transform: rotate(90deg);
             }
         }
     </style>
@@ -380,156 +465,184 @@
         <!-- 1. HEADER -->
         <header class="doc-header">
             <div class="header-left">
-                <h1><i class="fa-solid fa-shield-halved"></i> AegisVision AI CCTV</h1>
-                <p>Detection Zone Roles, 4-Corner Polygon Calibration & Real-Time Engine Reference</p>
+                <h1><i class="fa-solid fa-circle-question"></i> AegisVision Help & Reference Guide</h1>
+                <p>Detection Zone Roles, 4-Corner Polygon Calibration, RTSP Camera Stream Setup & AI Logic Manual</p>
             </div>
             <div class="header-actions">
-                <a href="/" class="btn btn-primary"><i class="fa-solid fa-arrow-left"></i> Live Dashboard</a>
+                <a href="/" class="btn btn-primary"><i class="fa-solid fa-arrow-left"></i> Return to Live Dashboard</a>
                 <button onclick="window.print()" class="btn btn-outline"><i class="fa-solid fa-print"></i> Print / Save PDF</button>
             </div>
         </header>
 
+        <!-- QUICK NAV -->
+        <nav class="quick-nav">
+            <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; margin-right: 0.5rem;">
+                <i class="fa-solid fa-compass" style="margin-right: 0.35rem;"></i> Jump to:
+            </span>
+            <a href="#roles">1. The 4 Behavior Roles</a>
+            <a href="#workflow">2. Sequential Theft Workflow</a>
+            <a href="#polygon">3. 4-Corner Draggable Calibration</a>
+            <a href="#confidence">4. Dynamic Confidence Formula</a>
+            <a href="#rtsp">5. IP Camera & RTSP Network</a>
+            <a href="#faq">6. Troubleshooting & FAQs</a>
+        </nav>
+
         <!-- 2. BEHAVIOR ROLES -->
-        <h2 class="section-title"><i class="fa-solid fa-shapes"></i> The 4 Core AI Behavior Roles</h2>
-        
-        <div class="roles-grid">
+        <section id="roles">
+            <h2 class="section-title"><i class="fa-solid fa-shapes"></i> 1. The 4 Core AI Behavior Roles</h2>
+            <p style="color: var(--text-secondary); font-size: 0.92rem; margin-bottom: 1.25rem;">
+                AegisVision organizes camera surveillance into 4 specialized behavior zone roles. Each role fulfills a distinct purpose in the theft detection state-machine:
+            </p>
             
-            <!-- ROLE 1: SHELF ZONE -->
-            <div class="role-card card-shelf">
-                <span class="role-badge badge-shelf"><i class="fa-solid fa-circle"></i> Shelf Zone</span>
-                <h3>Shelf Pick Zone</h3>
-                <p>Monitors product showcases, hanging racks, and item display shelves. Detects the moment a customer's hand approaches and takes an item.</p>
-                <div class="role-specs">
-                    <div><span>Visual Color:</span> <span style="color:var(--accent-amber)">Yellow / Orange</span></div>
-                    <div><span>Primary Purpose:</span> <span>Pick Item Initiation</span></div>
-                    <div><span>Internal Flag:</span> <code>shelf_touch_active</code></div>
-                    <div><span>Expected Placement:</span> <span>Display Case / Shelves</span></div>
+            <div class="roles-grid">
+                
+                <!-- ROLE 1: SHELF ZONE -->
+                <div class="role-card card-shelf">
+                    <span class="role-badge badge-shelf"><i class="fa-solid fa-circle"></i> Shelf Zone</span>
+                    <h3>1. Shelf Pick Zone</h3>
+                    <p>Monitors product display shelves, hanging racks, and item showcases. Detects the precise moment a customer's hand reaches in and picks an item.</p>
+                    <div class="role-specs">
+                        <div><span>Visual Color:</span> <span style="color:var(--accent-amber)">Amber / Orange</span></div>
+                        <div><span>Role Purpose:</span> <span>Item Pick Initiation</span></div>
+                        <div><span>State Flag:</span> <code>shelf_touch_active</code></div>
+                        <div><span>Recommended Area:</span> <span>Shelves & Racks</span></div>
+                    </div>
                 </div>
-            </div>
 
-            <!-- ROLE 2: POCKET CONCEALMENT -->
-            <div class="role-card card-pocket">
-                <span class="role-badge badge-pocket"><i class="fa-solid fa-circle"></i> Concealment ROI</span>
-                <h3>Pocket / Concealment ROI</h3>
-                <p>Placed around waistlines, coat pockets, shopping bags, or personal backpacks. Detects sequential transfers where an item is hidden after being picked.</p>
-                <div class="role-specs">
-                    <div><span>Visual Color:</span> <span style="color:var(--accent-red)">Crimson Red</span></div>
-                    <div><span>Primary Purpose:</span> <span>Theft Detection & Proof</span></div>
-                    <div><span>Trigger Event:</span> <code>CONCEALMENT_DETECTED</code></div>
-                    <div><span>Window Period:</span> <span>0.35s – 3.2s after pick</span></div>
+                <!-- ROLE 2: POCKET CONCEALMENT -->
+                <div class="role-card card-pocket">
+                    <span class="role-badge badge-pocket"><i class="fa-solid fa-circle"></i> Concealment ROI</span>
+                    <h3>2. Pocket / Concealment ROI</h3>
+                    <p>Placed around customer waistlines, coat pockets, personal backpacks, or shopping bags. Detects sequential transfers where an item is hidden after being picked.</p>
+                    <div class="role-specs">
+                        <div><span>Visual Color:</span> <span style="color:var(--accent-red)">Crimson Red</span></div>
+                        <div><span>Role Purpose:</span> <span>Theft Alert & Proof</span></div>
+                        <div><span>Event Type:</span> <code>CONCEALMENT_DETECTED</code></div>
+                        <div><span>Trigger Window:</span> <span>0.35s – 3.2s after pick</span></div>
+                    </div>
                 </div>
-            </div>
 
-            <!-- ROLE 3: CHECKOUT ZONE -->
-            <div class="role-card card-checkout">
-                <span class="role-badge badge-checkout"><i class="fa-solid fa-circle"></i> Checkout</span>
-                <h3>Checkout Scanner Plane</h3>
-                <p>Positioned across barcode scanner plates, conveyor belts, and cashier payment desks. Verifies item registration and flags "Sweethearting" (unscanned items).</p>
-                <div class="role-specs">
-                    <div><span>Visual Color:</span> <span style="color:var(--accent-cyan)">Cyan Blue</span></div>
-                    <div><span>Primary Purpose:</span> <span>Purchase Verification</span></div>
-                    <div><span>Sweethearting Alert:</span> <span>Passed Without Scan</span></div>
-                    <div><span>Expected Placement:</span> <span>Barcode Scanner Window</span></div>
+                <!-- ROLE 3: CHECKOUT ZONE -->
+                <div class="role-card card-checkout">
+                    <span class="role-badge badge-checkout"><i class="fa-solid fa-circle"></i> Checkout</span>
+                    <h3>3. Checkout Scanner Plane</h3>
+                    <p>Positioned across barcode scanner plates, conveyor belts, and cashier payment desks. Verifies item registration and flags "Sweethearting" (unscanned items passed across).</p>
+                    <div class="role-specs">
+                        <div><span>Visual Color:</span> <span style="color:var(--accent-cyan)">Cyan Blue</span></div>
+                        <div><span>Role Purpose:</span> <span>Purchase Verification</span></div>
+                        <div><span>Alert Flag:</span> <span>Passed Without Scan</span></div>
+                        <div><span>Placement:</span> <span>Scanner Surface</span></div>
+                    </div>
                 </div>
-            </div>
 
-            <!-- ROLE 4: BLIND SPOT -->
-            <div class="role-card card-blindspot">
-                <span class="role-badge badge-blindspot"><i class="fa-solid fa-circle"></i> Blindspot</span>
-                <h3>Loitering Blind Spot</h3>
-                <p>Calibrated over high-value jewelry/cosmetics cases or secluded aisle corners. Tracks dwelling duration to catch barcode peeling or anti-theft tag tampering.</p>
-                <div class="role-specs">
-                    <div><span>Visual Color:</span> <span style="color:var(--accent-purple)">Purple / Magenta</span></div>
-                    <div><span>Primary Purpose:</span> <span>Dwell & Tamper Alert</span></div>
-                    <div><span>Trigger Event:</span> <code>LOITERING_SUSPICIOUS</code></div>
-                    <div><span>Default Threshold:</span> <span>&gt; 8.0 Seconds</span></div>
+                <!-- ROLE 4: BLIND SPOT -->
+                <div class="role-card card-blindspot">
+                    <span class="role-badge badge-blindspot"><i class="fa-solid fa-circle"></i> Blindspot</span>
+                    <h3>4. Loitering Blind Spot</h3>
+                    <p>Calibrated over high-value jewelry/cosmetics cases or secluded aisle corners. Tracks dwelling duration to catch barcode peeling or anti-theft tag tampering.</p>
+                    <div class="role-specs">
+                        <div><span>Visual Color:</span> <span style="color:var(--accent-purple)">Purple / Magenta</span></div>
+                        <div><span>Role Purpose:</span> <span>Dwell & Tamper Alert</span></div>
+                        <div><span>Event Type:</span> <code>LOITERING_SUSPICIOUS</code></div>
+                        <div><span>Default Threshold:</span> <span>&gt; 8.0 Seconds</span></div>
+                    </div>
                 </div>
-            </div>
 
-        </div>
+            </div>
+        </section>
 
         <!-- 3. BEHAVIORAL SEQUENCE WORKFLOW -->
-        <div class="feature-panel">
-            <h4><i class="fa-solid fa-diagram-project text-blue"></i> Sequential Theft Detection Workflow</h4>
-            <p style="color: var(--text-secondary); font-size: 0.88rem;">
-                The AI does not trigger false alarms on simple motion. It monitors deliberate sequential transitions between calibrated behavioral zones:
-            </p>
+        <section id="workflow">
+            <div class="feature-panel">
+                <h4><i class="fa-solid fa-diagram-project"></i> 2. Sequential Theft Detection Workflow</h4>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                    The vision engine does <strong>not</strong> produce false alarms on normal customer browsing. It executes a deterministic sequential state-machine:
+                </p>
 
-            <div class="diagram-box">
-                <div class="diagram-node">
-                    <i class="fa-solid fa-hand text-amber" style="color: var(--accent-amber);"></i>
-                    <strong style="font-size: 0.85rem;">Step 1: Item Pick</strong>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Motion in Shelf Zone</div>
+                <div class="diagram-box">
+                    <div class="diagram-node">
+                        <i class="fa-solid fa-hand" style="color: var(--accent-amber);"></i>
+                        <strong style="font-size: 0.88rem; color: #0f172a;">Step 1: Item Pick</strong>
+                        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Motion in Shelf Zone</div>
+                    </div>
+                    <div class="diagram-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+                    <div class="diagram-node">
+                        <i class="fa-solid fa-stopwatch" style="color: var(--accent-blue);"></i>
+                        <strong style="font-size: 0.88rem; color: #0f172a;">Step 2: Trajectory Timing</strong>
+                        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">0.35s – 3.2s window</div>
+                    </div>
+                    <div class="diagram-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+                    <div class="diagram-node">
+                        <i class="fa-solid fa-person-circle-exclamation" style="color: var(--accent-red);"></i>
+                        <strong style="font-size: 0.88rem; color: #0f172a;">Step 3: Concealment</strong>
+                        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Motion into Pocket/Bag</div>
+                    </div>
+                    <div class="diagram-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+                    <div class="diagram-node">
+                        <i class="fa-solid fa-video" style="color: var(--accent-green);"></i>
+                        <strong style="font-size: 0.88rem; color: #0f172a;">Step 4: Evidence Vault</strong>
+                        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Snapshot & 4s MP4 Clip</div>
+                    </div>
                 </div>
-                <div class="diagram-arrow"><i class="fa-solid fa-arrow-right"></i></div>
-                <div class="diagram-node">
-                    <i class="fa-solid fa-stopwatch text-blue" style="color: var(--accent-blue);"></i>
-                    <strong style="font-size: 0.85rem;">Step 2: Trajectory Timing</strong>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">0.35s – 3.2s window</div>
-                </div>
-                <div class="diagram-arrow"><i class="fa-solid fa-arrow-right"></i></div>
-                <div class="diagram-node">
-                    <i class="fa-solid fa-person-circle-exclamation text-red" style="color: var(--accent-red);"></i>
-                    <strong style="font-size: 0.85rem;">Step 3: Concealment ROI</strong>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Motion into Pocket/Bag</div>
-                </div>
-                <div class="diagram-arrow"><i class="fa-solid fa-arrow-right"></i></div>
-                <div class="diagram-node">
-                    <i class="fa-solid fa-video text-green" style="color: var(--accent-green);"></i>
-                    <strong style="font-size: 0.85rem;">Step 4: Evidence Vault</strong>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Snapshot & 4s MP4 Clip</div>
+
+                <div class="callout-box">
+                    <strong>🛡️ Zero False Alarm Principle:</strong> If a customer reaches into a shelf and puts the item in their shopping basket or hands it to a companion without moving into the red Concealment ROI, no theft alert is triggered.
                 </div>
             </div>
-        </div>
+        </section>
 
         <!-- 4. 4-CORNER DRAGGABLE POLYGON CALIBRATION -->
-        <div class="feature-panel">
-            <h4><i class="fa-solid fa-draw-polygon text-blue"></i> 4-Corner Draggable Polygon ROI Calibration</h4>
-            <p style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 1rem;">
-                Real-world CCTV views have camera tilt, perspective distortion, and angled shelves. AegisVision features an interactive 4-corner polygon calibration tool:
-            </p>
+        <section id="polygon">
+            <div class="feature-panel">
+                <h4><i class="fa-solid fa-draw-polygon"></i> 3. 4-Corner Draggable Polygon ROI Calibration</h4>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
+                    Because real-world surveillance cameras are tilted at perspective angles, shelves are rarely perfect rectangles. AegisVision features an interactive 4-corner polygon calibration canvas:
+                </p>
 
-            <table class="doc-table">
-                <thead>
-                    <tr>
-                        <th>Control Element</th>
-                        <th>Action</th>
-                        <th>Description & Behavior</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><strong>Corner Pins (1, 2, 3, 4)</strong></td>
-                        <td><code>Click & Drag</code></td>
-                        <td>Adjusts individual corner vertices (<span style="color: var(--accent-blue)">C1: Top-Left, C2: Top-Right, C3: Bottom-Right, C4: Bottom-Left</span>) to form arbitrary quadrilaterals/trapezoids.</td>
-                    </tr>
-                    <tr>
-                        <td><strong>MOVE Anchor Pin</strong></td>
-                        <td><code>Click & Drag Center</code></td>
-                        <td>Translates the entire zone across the camera view without altering its calibrated perspective angle.</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Coordinate Input Boxes</strong></td>
-                        <td><code>Manual Numeric Entry</code></td>
-                        <td>Precision pixel adjustment ($X: 0 - 640\text{px}$, $Y: 0 - 480\text{px}$) in the right-side inspector.</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Point-in-Polygon Engine</strong></td>
-                        <td><code>cv2.pointPolygonTest</code></td>
-                        <td>Evaluates exact geometric point-in-polygon containment for non-rectangular zones.</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+                <table class="doc-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 25%;">Control Element</th>
+                            <th style="width: 20%;">Interaction</th>
+                            <th>Description & Behavior</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Corner Pins (C1, C2, C3, C4)</strong></td>
+                            <td><code>Click & Drag</code></td>
+                            <td>Adjust individual corner vertices (<span style="color: var(--accent-blue); font-weight: 600;">C1: Top-Left, C2: Top-Right, C3: Bottom-Right, C4: Bottom-Left</span>) to form arbitrary quadrilaterals/trapezoids that match angled shelves.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>MOVE Center Anchor</strong></td>
+                            <td><code>Click & Drag Center</code></td>
+                            <td>Translates the entire zone across the camera view without altering its calibrated perspective shape.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Coordinate Inspector</strong></td>
+                            <td><code>Manual Numeric Input</code></td>
+                            <td>Precision pixel entry ($X: 0 - 640\text{px}$, $Y: 0 - 480\text{px}$) in the right-side properties panel.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Geometric Math Engine</strong></td>
+                            <td><code>cv2.pointPolygonTest</code></td>
+                            <td>Backend OpenCV evaluates exact point-in-polygon containment for non-rectangular zones.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
         <!-- 5. DYNAMIC CONFIDENCE SCORING -->
-        <div class="feature-panel">
-            <h4><i class="fa-solid fa-calculator text-blue"></i> Dynamic Multi-Factor Confidence Scoring</h4>
-            <p style="color: var(--text-secondary); font-size: 0.88rem;">
-                Rather than producing static percentages, the AI vision engine calculates dynamic confidence based on physical behavioral factors:
-            </p>
+        <section id="confidence">
+            <div class="feature-panel">
+                <h4><i class="fa-solid fa-calculator"></i> 4. Dynamic Multi-Factor Confidence Scoring</h4>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                    Rather than producing static or hardcoded percentages, the AI vision engine calculates dynamic confidence based on physical behavioral factors:
+                </p>
 
-            <pre><code># Multi-Factor Behavior Calculation (detection_engine.py)
+                <pre><code># Multi-Factor Behavior Calculation (detection_engine.py)
+
 1. Transfer Speed Factor:
    - 0.5s to 1.4s deliberate concealment  => Speed Score: 94%
    - Under 0.5s ultra-fast transfer       => Speed Score: 82%
@@ -542,55 +655,81 @@
    - Sensitivity Multiplier = 0.60 + (UserSensitivity * 0.40)
 
 Final Confidence = clamp((SpeedScore * 0.60 + AreaScore * 0.20) * SensitivityMultiplier, 68%, 98%)</code></pre>
-        </div>
+            </div>
+        </section>
 
         <!-- 6. CAMERA STREAM & NETWORK REFERENCE -->
-        <div class="feature-panel">
-            <h4><i class="fa-solid fa-video text-blue"></i> IP Camera & RTSP Network Reference</h4>
-            <p style="color: var(--text-secondary); font-size: 0.88rem;">
-                Standard RTSP Stream URI formats for popular IP camera brands:
-            </p>
+        <section id="rtsp">
+            <div class="feature-panel">
+                <h4><i class="fa-solid fa-video"></i> 5. IP Camera & RTSP Network Reference</h4>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                    Standard RTSP Stream URI formats for popular IP camera brands in supermarket installations:
+                </p>
 
-            <table class="doc-table">
-                <thead>
-                    <tr>
-                        <th>Camera Brand</th>
-                        <th>Standard RTSP Stream Path</th>
-                        <th>Default Port</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><strong>UNV (Uniview) ANPR</strong></td>
-                        <td><code>rtsp://admin:PASSWORD@IP:554/Streaming/Channels/101</code></td>
-                        <td><code>554 (TCP)</code></td>
-                    </tr>
-                    <tr>
-                        <td><strong>Hikvision / HiLook / CP Plus</strong></td>
-                        <td><code>rtsp://admin:PASSWORD@IP:554/Streaming/Channels/101</code></td>
-                        <td><code>554 (TCP)</code></td>
-                    </tr>
-                    <tr>
-                        <td><strong>Dahua / Amcrest / IMOU</strong></td>
-                        <td><code>rtsp://admin:PASSWORD@IP:554/cam/realmonitor?channel=1&subtype=0</code></td>
-                        <td><code>554 (TCP)</code></td>
-                    </tr>
-                    <tr>
-                        <td><strong>Generic ONVIF / XM</strong></td>
-                        <td><code>rtsp://admin:PASSWORD@IP:554/live/ch0</code> or <code>/onvif1</code></td>
-                        <td><code>554 (TCP)</code></td>
-                    </tr>
-                </tbody>
-            </table>
+                <table class="doc-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 25%;">Camera Brand</th>
+                            <th style="width: 55%;">Standard RTSP Stream Path</th>
+                            <th style="width: 20%;">Default Port</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>UNV (Uniview) ANPR</strong></td>
+                            <td><code>rtsp://admin:PASSWORD@IP:554/Streaming/Channels/101</code></td>
+                            <td><code>554 (TCP)</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Hikvision / HiLook / CP Plus</strong></td>
+                            <td><code>rtsp://admin:PASSWORD@IP:554/Streaming/Channels/101</code></td>
+                            <td><code>554 (TCP)</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Dahua / Amcrest / IMOU</strong></td>
+                            <td><code>rtsp://admin:PASSWORD@IP:554/cam/realmonitor?channel=1&subtype=0</code></td>
+                            <td><code>554 (TCP)</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Generic ONVIF / XM</strong></td>
+                            <td><code>rtsp://admin:PASSWORD@IP:554/live/ch0</code> or <code>/onvif1</code></td>
+                            <td><code>554 (TCP)</code></td>
+                        </tr>
+                    </tbody>
+                </table>
 
-            <div style="background: rgba(59, 130, 246, 0.1); border-left: 3px solid var(--accent-blue); padding: 0.75rem 1rem; border-radius: 4px; margin-top: 1rem; font-size: 0.82rem;">
-                <strong>💡 Tip: URL-Encoding Passwords:</strong> If your camera password contains special characters like <code>@</code> (e.g. <code>admin@123</code>), URL-encode the character as <code>%40</code> (e.g. <code>admin%40123</code>) so it does not interfere with the RTSP URL format.
+                <div class="callout-box">
+                    <strong>💡 Important: Special Characters in Passwords:</strong> If your camera password contains special characters like <code>@</code> (e.g. <code>admin@123</code>), URL-encode the character as <code>%40</code> (e.g. <code>rtsp://admin:admin%40123@192.168.8.200:554/Streaming/Channels/101</code>) so it does not conflict with the RTSP URL host separator.
+                </div>
             </div>
-        </div>
+        </section>
+
+        <!-- 7. TROUBLESHOOTING & FAQS -->
+        <section id="faq">
+            <div class="feature-panel">
+                <h4><i class="fa-solid fa-circle-question"></i> 6. Frequently Asked Questions & Troubleshooting</h4>
+                
+                <div style="display: flex; flex-direction: column; gap: 1.25rem; margin-top: 1rem;">
+                    <div style="background: var(--bg-body); padding: 1.2rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                        <strong style="color: #0f172a; font-size: 0.95rem;"><i class="fa-solid fa-gauge-high" style="color: var(--accent-blue); margin-right: 0.4rem;"></i> Q: Why was there video delay and how was it resolved?</strong>
+                        <p style="color: var(--text-secondary); font-size: 0.88rem; margin-top: 0.4rem;">
+                            RTSP streams buffer frames in OpenCV FFMPEG if read synchronously. AegisVision utilizes a dedicated background thread (<code>RealtimeCaptureReader</code>) that drains incoming frames continuously, achieving instantaneous zero-lag live video.
+                        </p>
+                    </div>
+
+                    <div style="background: var(--bg-body); padding: 1.2rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                        <strong style="color: #0f172a; font-size: 0.95rem;"><i class="fa-solid fa-shield-halved" style="color: var(--accent-amber); margin-right: 0.4rem;"></i> Q: How do I arm the AI to begin recording theft incidents?</strong>
+                        <p style="color: var(--text-secondary); font-size: 0.88rem; margin-top: 0.4rem;">
+                            Click the <strong>AI: Standby / ARMED</strong> toggle button in the top navigation bar. When armed, the system will automatically generate evidence snapshots and 4-second MP4 video loops whenever a concealment transfer occurs.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <!-- FOOTER -->
         <footer class="doc-footer">
-            <p>AegisVision AI Theft Control & Prevention &bull; Technical Reference Documentation &bull; E:\theftcontrol</p>
+            <p><strong>AegisVision Supermarket AI CCTV Theft Control</strong> &bull; Technical Reference Documentation &bull; E:\theftcontrol</p>
         </footer>
 
     </div>

@@ -501,6 +501,14 @@ function App() {
                             <i className="fa-solid fa-file-shield"></i>
                             <span>Audit Logs</span>
                         </button>
+
+                        <button
+                            className={`nav-btn ${activeTab === 'help' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('help')}
+                        >
+                            <i className="fa-solid fa-circle-question"></i>
+                            <span>Help</span>
+                        </button>
                     </div>
 
                     <div className="subnav-right-info d-flex align-items-center gap-1">
@@ -509,9 +517,9 @@ function App() {
                             target="_blank"
                             className="btn btn-xs btn-outline text-blue"
                             style={{ textDecoration: 'none', fontWeight: 700 }}
-                            title="Open Technical Reference Guide & Zone Manual"
+                            title="Open Help & Technical Reference Guide in New Window"
                         >
-                            <i className="fa-solid fa-book-bookmark"></i> Reference Guide
+                            <i className="fa-solid fa-circle-question"></i> Help
                         </a>
                         <span className="db-pill">
                             <i className="fa-solid fa-database"></i> MySQL: theft_control_db
@@ -686,6 +694,10 @@ function App() {
 
                 {activeTab === 'reports' && (
                     <ReportsTab />
+                )}
+
+                {activeTab === 'help' && (
+                    <HelpTab />
                 )}
             </main>
 
@@ -2294,6 +2306,56 @@ function ReportsTab() {
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    );
+}
+
+// -------------------------------------------------------------
+// TAB 7: HELP & REFERENCE MANUAL
+// -------------------------------------------------------------
+function HelpTab() {
+    return (
+        <div className="tab-content" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)', gap: '0.65rem' }}>
+            <div className="panel-card" style={{ padding: '0.65rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div className="d-flex align-items-center gap-2">
+                    <i className="fa-solid fa-circle-question text-blue" style={{ fontSize: '1.25rem' }}></i>
+                    <div>
+                        <strong style={{ fontSize: '0.95rem' }}>AegisVision AI Help & Technical Manual</strong>
+                        <div className="text-muted font-xs">4 Behavior Roles &bull; 4-Corner Draggable ROI &bull; Dynamic Confidence &bull; RTSP Setup</div>
+                    </div>
+                </div>
+                <div className="d-flex gap-1">
+                    <a
+                        href="/documentation.html"
+                        target="_blank"
+                        className="btn btn-xs btn-outline"
+                        title="Open in Fullscreen Browser Tab"
+                    >
+                        <i className="fa-solid fa-arrow-up-right-from-square"></i> Open in New Tab
+                    </a>
+                    <button
+                        className="btn btn-xs btn-primary"
+                        onClick={() => {
+                            const iframe = document.getElementById('help-doc-frame');
+                            if (iframe && iframe.contentWindow) {
+                                iframe.contentWindow.print();
+                            } else {
+                                window.open('/documentation.html', '_blank');
+                            }
+                        }}
+                    >
+                        <i className="fa-solid fa-print"></i> Print / Save PDF
+                    </button>
+                </div>
+            </div>
+            <div style={{ flex: 1, backgroundColor: '#ffffff', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+                <iframe
+                    id="help-doc-frame"
+                    src="/documentation.html"
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                    title="AegisVision Help Manual"
+                />
             </div>
         </div>
     );
