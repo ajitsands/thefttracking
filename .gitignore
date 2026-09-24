@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtualenv & Isolated Environment
+WorkingFiles/venv/
+WorkingFiles/pip_cache/
+WorkingFiles/pycache/
+
+# Sensitive / Large Media Storage
+WorkingFiles/storage/clips/*.mp4
+WorkingFiles/storage/snapshots/*.jpg
+WorkingFiles/database/*.db
+
+# IDE & OS
+.vscode/
+.idea/
+*.log
+Thumbs.db
+.DS_Store
