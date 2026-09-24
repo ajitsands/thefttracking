@@ -967,7 +967,7 @@ function App() {
 
                                 {/* 3. Other Products Button */}
                                 <a
-                                    href="https://www.sandslab.com/products"
+                                    href="https://sandslab.com/products/"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="sands-action-link"
@@ -977,7 +977,7 @@ function App() {
                                     </div>
                                     <div style={{ flex: 1 }}>
                                         <strong>Other Products</strong>
-                                        <div className="font-xs text-muted mt-1">sandslab.com/products</div>
+                                        <div className="font-xs text-muted mt-1">sandslab.com/products/</div>
                                     </div>
                                     <i className="fa-solid fa-arrow-up-right-from-square font-xs text-muted"></i>
                                 </a>
