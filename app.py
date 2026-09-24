@@ -464,26 +464,6 @@ def matrix_feed():
     return Response(generate_matrix_composite(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
-@app.route("/api/cameras/<int:cam_id>/video_feed")
-def camera_video_feed(cam_id):
-    """Streams live video for a specific camera in single camera views."""
-    if cam_id == engine.camera_id:
-        return Response(generate_video_stream(),
-                        mimetype='multipart/x-mixed-replace; boundary=frame')
-    else:
-        def generate_secondary_stream():
-            while True:
-                if cam_id == engine.camera_id:
-                    frame_bytes = engine.get_jpeg_frame()
-                else:
-                    frame_bytes = get_camera_frame_jpeg(cam_id)
-                if frame_bytes:
-                    yield (b'--frame\r\n'
-                           b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-                time.sleep(0.05)
-        return Response(generate_secondary_stream(),
-                        mimetype='multipart/x-mixed-replace; boundary=frame')
-
 @app.route("/api/all_zones", methods=["GET"])
 def get_all_zones():
     conn = get_db_connection()

@@ -1229,6 +1229,114 @@ function DashboardTab({ stats, events, cameras, isArmed, streamTimestamp, onActi
                     </div>
                 </div>
             </div>
+
+            {/* Simultaneous Multi-Camera Live Surveillance Grid */}
+            <div className="panel-card mt-2">
+                <div className="panel-header">
+                    <div className="panel-title">
+                        <i className="fa-solid fa-table-cells text-blue"></i>
+                        <span>All Connected Cameras &mdash; Simultaneous Live Real-Time Surveillance ({cameras.length} Active Channels)</span>
+                    </div>
+                    <div className="d-flex align-items-center gap-1">
+                        <span className="badge-tag confirmed font-xs">
+                            <i className="fa-solid fa-satellite-dish"></i> All Feeds Live & Synchronized
+                        </span>
+                        <button className="btn btn-xs btn-outline" onClick={() => onSwitchTab('matrix')}>
+                            Open Fullscreen Matrix &rarr;
+                        </button>
+                    </div>
+                </div>
+                <div className="panel-body">
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: `repeat(auto-fit, minmax(280px, 1fr))`,
+                        gap: '12px'
+                    }}>
+                        {cameras.map(c => {
+                            const isPrimary = Boolean(Number(c.is_active));
+                            return (
+                                <div
+                                    key={c.id}
+                                    style={{
+                                        position: 'relative',
+                                        borderRadius: '8px',
+                                        overflow: 'hidden',
+                                        border: isPrimary ? '2px solid #10b981' : '1px solid var(--border-color)',
+                                        backgroundColor: '#0a0f1d',
+                                        boxShadow: isPrimary ? '0 0 12px rgba(16, 185, 129, 0.3)' : 'none'
+                                    }}
+                                >
+                                    {/* Mini Header Overlay */}
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
+                                        padding: '4px 8px',
+                                        background: 'linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 100%)',
+                                        zIndex: 2,
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
+                                    }}>
+                                        <div className="d-flex align-items-center gap-1">
+                                            <span style={{
+                                                width: '7px',
+                                                height: '7px',
+                                                borderRadius: '50%',
+                                                backgroundColor: isPrimary ? '#10b981' : '#06b6d4',
+                                                display: 'inline-block'
+                                            }}></span>
+                                            <strong style={{ color: '#fff', fontSize: '0.74rem', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
+                                                {c.name}
+                                            </strong>
+                                        </div>
+                                        <span className="badge-tag confirmed" style={{
+                                            fontSize: '0.62rem',
+                                            padding: '1px 5px',
+                                            backgroundColor: isPrimary ? '#10b981' : 'rgba(6,182,212,0.25)',
+                                            color: isPrimary ? '#fff' : '#38bdf8'
+                                        }}>
+                                            {isPrimary ? 'AI FOCUS' : 'LIVE'}
+                                        </span>
+                                    </div>
+
+                                    {/* Live Video Stream */}
+                                    <img
+                                        src={`/api/cameras/${c.id}/video_feed?t=${streamTimestamp}`}
+                                        alt={c.name}
+                                        style={{ width: '100%', height: '170px', objectFit: 'cover', display: 'block', cursor: 'pointer' }}
+                                        onClick={() => onActivateCamera(c.id)}
+                                        title={`Click to focus primary AI on ${c.name}`}
+                                    />
+
+                                    {/* Mini Footer Controls */}
+                                    <div style={{
+                                        padding: '4px 8px',
+                                        backgroundColor: '#0f172a',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
+                                    }}>
+                                        <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                                            {c.location || 'Floor'} &bull; <code>{c.camera_type}</code>
+                                        </span>
+                                        {!isPrimary && (
+                                            <button
+                                                className="btn btn-xs btn-primary"
+                                                style={{ fontSize: '0.66rem', padding: '1px 6px' }}
+                                                onClick={() => onActivateCamera(c.id)}
+                                            >
+                                                Focus AI
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }
@@ -2297,18 +2405,8 @@ function ZoneEditorTab({ zones, cameras = [], selectedZoneCameraId, onSelectZone
     );
 }
 
-// Matrix Camera Tile with individual snapshot stream and zero socket exhaustion
+// Matrix Camera Tile with continuous real-time simultaneous live streaming
 function MatrixTile({ c, isPrimary, isAlerting, stats, streamTimestamp, onActivateCamera, onCalibrateCamera, onToggleFullscreen }) {
-    const [snapshotUrl, setSnapshotUrl] = useState(`/api/cameras/${c.id}/snapshot?t=${Date.now()}`);
-
-    useEffect(() => {
-        if (isPrimary) return;
-        const interval = setInterval(() => {
-            setSnapshotUrl(`/api/cameras/${c.id}/snapshot?t=${Date.now()}`);
-        }, 500); // 2 FPS lightweight snapshot poll for non-primary channels
-        return () => clearInterval(interval);
-    }, [c.id, isPrimary]);
-
     return (
         <div
             id={`matrix-tile-${c.id}`}
@@ -2318,12 +2416,13 @@ function MatrixTile({ c, isPrimary, isAlerting, stats, streamTimestamp, onActiva
             <div className="matrix-tile-header">
                 <div className="d-flex align-items-center gap-1">
                     <span style={{
-                        width: '8px',
-                        height: '8px',
+                        width: '9px',
+                        height: '9px',
                         borderRadius: '50%',
-                        backgroundColor: isPrimary ? '#10b981' : '#38bdf8',
+                        backgroundColor: isPrimary ? '#10b981' : '#06b6d4',
                         display: 'inline-block',
-                        boxShadow: isPrimary ? '0 0 6px #10b981' : 'none'
+                        boxShadow: isPrimary ? '0 0 8px #10b981' : '0 0 6px #06b6d4',
+                        animation: 'pulse 1.8s infinite'
                     }}></span>
                     <strong style={{ color: '#ffffff', fontSize: '0.82rem', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}>
                         {c.name}
@@ -2337,38 +2436,27 @@ function MatrixTile({ c, isPrimary, isAlerting, stats, streamTimestamp, onActiva
                         </span>
                     )}
                     {isPrimary ? (
-                        <span className="badge-tag confirmed font-xs">
-                            PRIMARY AI ({stats.fps || 0} FPS)
+                        <span className="badge-tag confirmed font-xs" style={{ backgroundColor: '#10b981', color: '#ffffff', boxShadow: '0 0 8px rgba(16,185,129,0.5)' }}>
+                            🛡️ PRIMARY AI ({stats.fps || 0} FPS)
                         </span>
                     ) : (
-                        <span className="badge-tag pending font-xs" style={{ backgroundColor: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8' }}>
-                            LIVE STANDBY
+                        <span className="badge-tag confirmed font-xs" style={{ backgroundColor: 'rgba(6, 182, 212, 0.25)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.4)' }}>
+                            🟢 LIVE REAL-TIME
                         </span>
                     )}
                 </div>
             </div>
 
-            {/* Camera Live Stream / Snapshot Image */}
-            {isPrimary ? (
-                <img
-                    key={`matrix-primary-${c.id}-${streamTimestamp}`}
-                    src={`/api/video_feed?t=${streamTimestamp}`}
-                    alt={c.name}
-                    className="matrix-stream-img"
-                    onClick={() => onActivateCamera(c.id)}
-                    style={{ cursor: 'pointer' }}
-                    title="Active Primary AI Stream"
-                />
-            ) : (
-                <img
-                    src={snapshotUrl}
-                    alt={c.name}
-                    className="matrix-stream-img"
-                    onClick={() => onActivateCamera(c.id)}
-                    style={{ cursor: 'pointer' }}
-                    title="Click to Focus as Primary AI Camera"
-                />
-            )}
+            {/* Continuous Live Video Stream (All Cameras Active Simultaneously) */}
+            <img
+                key={`matrix-cam-${c.id}-${streamTimestamp}`}
+                src={`/api/cameras/${c.id}/video_feed?t=${streamTimestamp}`}
+                alt={c.name}
+                className="matrix-stream-img"
+                onClick={() => onActivateCamera(c.id)}
+                style={{ cursor: 'pointer' }}
+                title={`Live Stream &bull; Click to set ${c.name} as Primary AI Camera`}
+            />
 
             {/* Bottom Action Footer Overlay */}
             <div className="matrix-tile-footer">
@@ -2377,15 +2465,19 @@ function MatrixTile({ c, isPrimary, isAlerting, stats, streamTimestamp, onActiva
                 </div>
 
                 <div className="d-flex gap-1">
-                    {!isPrimary && (
+                    {!isPrimary ? (
                         <button
                             className="btn btn-xs btn-primary"
                             onClick={() => onActivateCamera(c.id)}
-                            style={{ fontSize: '0.7rem', padding: '2px 6px' }}
-                            title="Switch Live AI Detection to this Camera"
+                            style={{ fontSize: '0.7rem', padding: '2px 8px' }}
+                            title="Focus Primary AI Theft Detection on this Camera"
                         >
-                            <i className="fa-solid fa-play"></i> Switch Main
+                            <i className="fa-solid fa-crosshairs"></i> Focus AI
                         </button>
+                    ) : (
+                        <span className="badge-tag confirmed font-xs" style={{ padding: '2px 8px' }}>
+                            <i className="fa-solid fa-check"></i> AI Engaged
+                        </span>
                     )}
                     <button
                         className="btn btn-xs btn-outline"
