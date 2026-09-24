@@ -121,27 +121,43 @@ class HTTPSnapshotReader:
         self.running = False
 
 class MultiSourceStreamHub:
-    """Manages concurrent background frame streams for all connected physical cameras (Webcam, RTSP, IP Cam)."""
+    """Manages concurrent non-blocking background frame streams for all connected physical cameras (Webcam, RTSP, IP Cam)."""
     def __init__(self):
         self.readers = {}
+        self.sources = {}
+        self.connecting = set()
+        self.last_attempt = {}
         self.lock = threading.Lock()
 
     def get_frame(self, cam_id, source):
         src = str(source).strip()
         if src.lower() in ("demo", "-1"):
-            return None # Fallback to synthetic demo generator
-            
+            return None
+
+        reader_to_read = None
+        needs_init = False
+
         with self.lock:
-            if cam_id not in self.readers:
-                self.readers[cam_id] = self._create_reader(src)
-            reader = self.readers[cam_id]
-            
-        if reader is not None:
-            ret, frame = reader.read()
+            existing_src = self.sources.get(cam_id)
+            if cam_id in self.readers and existing_src == src:
+                reader_to_read = self.readers[cam_id]
+            else:
+                now = time.time()
+                # If source changed or reader absent, check if we can spawn background worker
+                if cam_id not in self.connecting and (now - self.last_attempt.get(cam_id, 0) > 4.0):
+                    needs_init = True
+                    self.connecting.add(cam_id)
+                    self.last_attempt[cam_id] = now
+
+        if needs_init:
+            threading.Thread(target=self._async_init_reader, args=(cam_id, src), daemon=True).start()
+
+        if reader_to_read is not None:
+            ret, frame = reader_to_read.read()
             if ret and frame is not None:
                 return frame
             elif ret is False:
-                # Reconnect
+                # Reader timed out / dead stream
                 with self.lock:
                     if cam_id in self.readers:
                         try:
@@ -149,7 +165,33 @@ class MultiSourceStreamHub:
                         except Exception:
                             pass
                         del self.readers[cam_id]
+                        if cam_id in self.sources:
+                            del self.sources[cam_id]
+                        self.last_attempt[cam_id] = time.time()
         return None
+
+    def _async_init_reader(self, cam_id, source):
+        try:
+            # Release any old reader for this camera id
+            with self.lock:
+                old_reader = self.readers.pop(cam_id, None)
+            if old_reader is not None:
+                try:
+                    old_reader.release()
+                except Exception:
+                    pass
+
+            new_reader = self._create_reader(source)
+            with self.lock:
+                if new_reader is not None:
+                    self.readers[cam_id] = new_reader
+                    self.sources[cam_id] = source
+                    print(f"[MultiSourceStreamHub] Successfully connected camera channel {cam_id} ({source})")
+        except Exception as e:
+            print(f"[MultiSourceStreamHub] Async connect error for cam {cam_id} ({source}): {e}")
+        finally:
+            with self.lock:
+                self.connecting.discard(cam_id)
 
     def _create_reader(self, source):
         try:
@@ -312,7 +354,8 @@ class TheftDetectionEngine:
                 self.camera_name = camera_name
             self.frame_buffer.clear()
             self.bg_subtractor = cv2.createBackgroundSubtractorMOG2(history=300, varThreshold=25, detectShadows=True)
-            print(f"[DetectionEngine] Switched camera to: {self.camera_name} ({self.current_source})")
+            self.zones = self.get_zones()
+            print(f"[DetectionEngine] Switched camera to: {self.camera_name} ({self.current_source}) with {len(self.zones)} calibrated zones.")
 
     def _open_capture(self):
         source = self.current_source.strip()
@@ -537,42 +580,22 @@ class TheftDetectionEngine:
                     time.sleep(0.1)
                     continue
 
-                if self.cap is None:
-                    src_clean = str(self.current_source).strip().lower()
-                    if src_clean == "demo" or src_clean == "-1":
-                        self.cap = "demo"
-                    else:
-                        cap_result = self._open_capture()
-                        if cap_result is not None:
-                            self.cap = cap_result
-                        else:
-                            # Display connecting feedback on HUD while retrying
-                            connecting_frame = np.full((480, 640, 3), 25, dtype=np.uint8)
-                            cv2.putText(connecting_frame, "CONNECTING TO CAMERA...", (140, 210),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 220, 255), 2)
-                            cv2.putText(connecting_frame, f"Target: {self.camera_name}", (140, 250),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200, 200, 200), 1)
-                            cv2.putText(connecting_frame, "Negotiating RTSP / TCP Stream Handshake...", (140, 280),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (120, 220, 120), 1)
-                            self.latest_frame = connecting_frame
-                            time.sleep(1.0)
-                            continue
-
-                if self.cap == "demo":
+                src_clean = str(self.current_source).strip().lower()
+                if src_clean in ("demo", "-1"):
                     frame = self._generate_synthetic_demo_frame()
                     time.sleep(0.04) # ~25fps
                 else:
-                    ret, frame = self.cap.read()
-                    if ret is None:
-                        # Stream is currently connecting or buffering next frame
-                        time.sleep(0.015)
-                        continue
-                    elif ret is False or frame is None:
-                        # Stream failed or timed out
-                        if self.cap is not None and hasattr(self.cap, "release"):
-                            self.cap.release()
-                        self.cap = None
-                        time.sleep(0.5)
+                    frame = stream_hub.get_frame(self.camera_id, self.current_source)
+                    if frame is None:
+                        connecting_frame = np.full((480, 640, 3), 25, dtype=np.uint8)
+                        cv2.putText(connecting_frame, "CONNECTING TO CAMERA...", (140, 210),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 220, 255), 2)
+                        cv2.putText(connecting_frame, f"Target: {self.camera_name}", (140, 250),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200, 200, 200), 1)
+                        cv2.putText(connecting_frame, "Streaming real-time live frames...", (140, 280),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (120, 220, 120), 1)
+                        self.latest_frame = connecting_frame
+                        time.sleep(0.05)
                         continue
 
                 # Resize to standard processing resolution

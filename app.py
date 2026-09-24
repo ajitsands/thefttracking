@@ -371,6 +371,30 @@ def camera_snapshot(cam_id):
         }
     )
 
+@app.route("/api/cameras/<int:cam_id>/video_feed")
+def single_camera_video_feed(cam_id):
+    """Dedicated MJPEG video stream for a specific camera channel (Zone calibration / Single Cam Fullscreen)."""
+    def generate_single_cam_stream():
+        while True:
+            frame_bytes = get_camera_frame_jpeg(cam_id)
+            if frame_bytes:
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+            time.sleep(0.04) # ~25fps
+    return Response(generate_single_cam_stream(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route("/api/camera/source", methods=["POST"])
+def switch_camera_source():
+    data = request.get_json(silent=True) or {}
+    source = data.get("source", "0")
+    cam_id = data.get("camera_id")
+    cam_name = data.get("camera_name")
+    if cam_id:
+        return activate_camera(int(cam_id))
+    engine.set_source(source, camera_id=cam_id, camera_name=cam_name)
+    return jsonify({"success": True, "source": source})
+
 @app.route("/api/matrix_feed")
 def matrix_feed():
     """Unified composite stream stitching all active cameras into a single video wall feed (1 HTTP socket)."""

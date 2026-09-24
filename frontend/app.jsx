@@ -1163,11 +1163,13 @@ function DashboardTab({ stats, events, cameras, isArmed, streamTimestamp, onActi
                             <select
                                 className="form-select"
                                 style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.75rem', fontWeight: 700 }}
-                                value={(cameras.find(c => c.is_active) || {}).id || ''}
+                                value={(cameras.find(c => Boolean(Number(c.is_active))) || cameras[0] || {}).id || ''}
                                 onChange={(e) => onActivateCamera(Number(e.target.value))}
                             >
                                 {cameras.map(c => (
-                                    <option key={c.id} value={c.id}>{c.name} {c.is_active ? '🟢 (LIVE)' : ''} &bull; {c.camera_type}</option>
+                                    <option key={c.id} value={c.id}>
+                                        {c.name} {Boolean(Number(c.is_active)) ? '🟢 (LIVE AI ACTIVE)' : ''} &bull; {c.camera_type}
+                                    </option>
                                 ))}
                             </select>
                         </div>
@@ -1300,27 +1302,30 @@ function LiveMonitorTab({ stats, cameras, streamTimestamp, onActivateCamera, onT
                     </div>
                     <div className="panel-body">
                         <div className="d-flex flex-wrap gap-1">
-                            {cameras.map(c => (
-                                <div
-                                    key={c.id}
-                                    className="d-flex align-items-center justify-content-between w-100 p-2"
-                                    style={{
-                                        border: '1px solid var(--border-color)',
-                                        borderRadius: '8px',
-                                        backgroundColor: c.is_active ? 'var(--accent-blue-soft)' : 'var(--bg-primary)',
-                                        cursor: 'pointer'
-                                    }}
-                                    onClick={() => onActivateCamera(c.id)}
-                                >
-                                    <div>
-                                        <strong className="font-sm">{c.name}</strong>
-                                        <div className="font-xs text-muted">{c.location || 'Store'} &bull; {c.camera_type}</div>
+                            {cameras.map(c => {
+                                const isActive = Boolean(Number(c.is_active));
+                                return (
+                                    <div
+                                        key={c.id}
+                                        className="d-flex align-items-center justify-content-between w-100 p-2"
+                                        style={{
+                                            border: '1px solid var(--border-color)',
+                                            borderRadius: '8px',
+                                            backgroundColor: isActive ? 'var(--accent-blue-soft)' : 'var(--bg-primary)',
+                                            cursor: 'pointer'
+                                        }}
+                                        onClick={() => onActivateCamera(c.id)}
+                                    >
+                                        <div>
+                                            <strong className="font-sm">{c.name}</strong>
+                                            <div className="font-xs text-muted">{c.location || 'Store'} &bull; {c.camera_type}</div>
+                                        </div>
+                                        <span className={`badge-tag ${isActive ? 'confirmed' : 'false-alarm'}`}>
+                                            {isActive ? 'ACTIVE' : 'IDLE'}
+                                        </span>
                                     </div>
-                                    <span className={`badge-tag ${c.is_active ? 'confirmed' : 'false-alarm'}`}>
-                                        {c.is_active ? 'ACTIVE' : 'IDLE'}
-                                    </span>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
@@ -2514,7 +2519,7 @@ function MultiCamMatrixTab({ cameras = [], stats = {}, events = [], streamTimest
             ) : (
                 <div className={`matrix-grid ${gridLayout}`}>
                     {cameras.map(c => {
-                        const isPrimary = c.is_active;
+                        const isPrimary = Boolean(Number(c.is_active));
                         const recentAlert = recentAlertsByCam[c.id];
                         const isAlerting = Boolean(recentAlert);
 
@@ -2739,37 +2744,43 @@ function CameraSetupTab({ cameras, onActivateCamera, onOpenEdit, onDeleteCamera,
                                 key: 'is_active',
                                 label: 'Hardware Status',
                                 sortable: true,
-                                render: (c) => (
-                                    <span className={`badge-tag ${c.is_active ? 'confirmed' : 'false-alarm'}`}>
-                                        {c.is_active ? '🟢 ACTIVE FEED' : '⚪ IDLE STANDBY'}
-                                    </span>
-                                )
+                                render: (c) => {
+                                    const isActive = Boolean(Number(c.is_active));
+                                    return (
+                                        <span className={`badge-tag ${isActive ? 'confirmed' : 'false-alarm'}`}>
+                                            {isActive ? '🟢 ACTIVE FEED' : '⚪ IDLE STANDBY'}
+                                        </span>
+                                    );
+                                }
                             },
                             {
                                 key: 'actions',
                                 label: 'Actions',
                                 sortable: false,
                                 align: 'right',
-                                render: (c) => (
-                                    <div className="d-flex gap-1 justify-content-end">
-                                        <button
-                                            className={`btn btn-xs ${c.is_active ? 'btn-primary' : 'btn-outline'}`}
-                                            onClick={() => onActivateCamera(c.id)}
-                                            title="Switch Live Feed"
-                                        >
-                                            <i className="fa-solid fa-play"></i> {c.is_active ? 'Streaming' : 'Switch'}
-                                        </button>
-                                        <button className="btn btn-xs btn-outline text-blue" onClick={() => onOpenEdit(c)} title="Edit Camera Parameters">
-                                            <i className="fa-solid fa-pen-to-square"></i> Edit
-                                        </button>
-                                        <button className="btn btn-xs btn-outline text-red" onClick={() => onDeleteCamera(c.id)} title="Delete Camera">
-                                            <i className="fa-solid fa-trash"></i> Delete
-                                        </button>
-                                        <button className="btn btn-xs btn-outline" onClick={() => onSwitchTab('zones')} title="Calibrate Detection Zones">
-                                            <i className="fa-solid fa-crosshairs"></i> Calibrate
-                                        </button>
-                                    </div>
-                                )
+                                render: (c) => {
+                                    const isActive = Boolean(Number(c.is_active));
+                                    return (
+                                        <div className="d-flex gap-1 justify-content-end">
+                                            <button
+                                                className={`btn btn-xs ${isActive ? 'btn-primary' : 'btn-outline'}`}
+                                                onClick={() => onActivateCamera(c.id)}
+                                                title="Switch Live Feed"
+                                            >
+                                                <i className="fa-solid fa-play"></i> {isActive ? 'Streaming' : 'Switch'}
+                                            </button>
+                                            <button className="btn btn-xs btn-outline text-blue" onClick={() => onOpenEdit(c)} title="Edit Camera Parameters">
+                                                <i className="fa-solid fa-pen-to-square"></i> Edit
+                                            </button>
+                                            <button className="btn btn-xs btn-outline text-red" onClick={() => onDeleteCamera(c.id)} title="Delete Camera">
+                                                <i className="fa-solid fa-trash"></i> Delete
+                                            </button>
+                                            <button className="btn btn-xs btn-outline" onClick={() => onSwitchTab('zone-editor')} title="Calibrate Detection Zones">
+                                                <i className="fa-solid fa-crosshairs"></i> Calibrate
+                                            </button>
+                                        </div>
+                                    );
+                                }
                             }
                         ]}
                         keyField="id"
