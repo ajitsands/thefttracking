@@ -64,6 +64,7 @@ function App() {
     const [evidenceViewMode, setEvidenceViewMode] = useState('snapshot'); // 'snapshot' or 'video'
     const [officerNotes, setOfficerNotes] = useState('');
     const [editCamModalData, setEditCamModalData] = useState(null);
+    const [sandsModalOpen, setSandsModalOpen] = useState(false);
 
     // Stream refresh timestamp
     const [streamTimestamp, setStreamTimestamp] = useState(Date.now());
@@ -701,6 +702,27 @@ function App() {
                 )}
             </main>
 
+            {/* APP FOOTER WITH SANDS LAB INTERACTIVE BUTTON */}
+            <footer className="app-footer">
+                <div className="d-flex align-items-center gap-2">
+                    <i className="fa-solid fa-shield-halved text-blue"></i>
+                    <span>AegisVision AI CCTV Theft Control</span>
+                    <span className="text-muted font-xs">&bull; Enterprise Retail Edition</span>
+                </div>
+
+                <div className="d-flex align-items-center gap-2">
+                    <button
+                        className="sands-lab-btn"
+                        onClick={() => setSandsModalOpen(true)}
+                        title="Engineered by SaNDS Lab - Click for Support, WhatsApp & Products"
+                    >
+                        <i className="fa-solid fa-flask-vial text-blue"></i>
+                        <span>Engineered By SaNDS Lab</span>
+                        <i className="fa-solid fa-arrow-up-right-from-square font-xs text-muted"></i>
+                    </button>
+                </div>
+            </footer>
+
             {/* 5. EVIDENCE REVIEW MODAL */}
             {evidenceModalEvent && (
                 <div className="modal-overlay">
@@ -862,6 +884,88 @@ function App() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* 7. SANDS LAB SUPPORT & PRODUCTS POPUP MODAL */}
+            {sandsModalOpen && (
+                <div className="modal-overlay" onClick={() => setSandsModalOpen(false)}>
+                    <div className="modal-content-box" style={{ maxWidth: '460px' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="panel-header">
+                            <div className="panel-title">
+                                <i className="fa-solid fa-flask-vial text-blue"></i>
+                                <span>Engineered By SaNDS Lab</span>
+                            </div>
+                            <button className="btn-icon" onClick={() => setSandsModalOpen(false)}>&times;</button>
+                        </div>
+                        <div className="panel-body">
+                            <p className="font-sm text-secondary mb-2">
+                                Intelligent AI Vision & Automation Solutions. Click any option below to connect with us directly or explore our ecosystem:
+                            </p>
+
+                            <div className="sands-actions-grid">
+                                {/* 1. WhatsApp Help Button */}
+                                <a
+                                    href="https://wa.me/97335078079?text=Hello%20SaNDS%20Lab%2C%20I%20need%20assistance%20with%20AegisVision%20Theft%20Control"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="sands-action-link"
+                                >
+                                    <div className="sands-icon-box sands-icon-whatsapp">
+                                        <i className="fa-brands fa-whatsapp"></i>
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <strong style={{ color: '#25D366' }}>Help (WhatsApp Support)</strong>
+                                            <span className="badge-tag confirmed font-xs">Online</span>
+                                        </div>
+                                        <div className="font-xs text-muted mt-1">+973 35078079 &bull; Instant Engineer Chat</div>
+                                    </div>
+                                    <i className="fa-solid fa-arrow-up-right-from-square font-xs text-muted"></i>
+                                </a>
+
+                                {/* 2. Website Button */}
+                                <a
+                                    href="https://www.sandslab.com"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="sands-action-link"
+                                >
+                                    <div className="sands-icon-box sands-icon-web">
+                                        <i className="fa-solid fa-globe"></i>
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <strong>Web Site</strong>
+                                        <div className="font-xs text-muted mt-1">www.sandslab.com</div>
+                                    </div>
+                                    <i className="fa-solid fa-arrow-up-right-from-square font-xs text-muted"></i>
+                                </a>
+
+                                {/* 3. Other Products Button */}
+                                <a
+                                    href="https://www.sandslab.com/products"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="sands-action-link"
+                                >
+                                    <div className="sands-icon-box sands-icon-products">
+                                        <i className="fa-solid fa-layer-group"></i>
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <strong>Other Products</strong>
+                                        <div className="font-xs text-muted mt-1">sandslab.com/products</div>
+                                    </div>
+                                    <i className="fa-solid fa-arrow-up-right-from-square font-xs text-muted"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div className="panel-footer d-flex justify-content-between align-items-center">
+                            <span className="font-xs text-muted">&copy; SaNDS Lab &bull; All Rights Reserved</span>
+                            <button className="btn btn-sm btn-secondary" onClick={() => setSandsModalOpen(false)}>
+                                Close
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
