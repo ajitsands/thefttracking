@@ -192,7 +192,11 @@ class TheftDetectionEngine:
     def set_source(self, source, camera_id=None, camera_name=None):
         with self.lock:
             if self.cap is not None:
-                self.cap.release()
+                if hasattr(self.cap, "release"):
+                    try:
+                        self.cap.release()
+                    except Exception:
+                        pass
                 self.cap = None
             self.current_source = str(source)
             if camera_id:
@@ -237,7 +241,11 @@ class TheftDetectionEngine:
     def stop(self):
         self.running = False
         if self.cap is not None:
-            self.cap.release()
+            if hasattr(self.cap, "release"):
+                try:
+                    self.cap.release()
+                except Exception:
+                    pass
             self.cap = None
 
     def _generate_synthetic_demo_frame(self):

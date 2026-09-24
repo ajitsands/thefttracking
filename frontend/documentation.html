@@ -594,10 +594,44 @@
         <!-- 4. 4-CORNER DRAGGABLE POLYGON CALIBRATION -->
         <section id="polygon">
             <div class="feature-panel">
-                <h4><i class="fa-solid fa-draw-polygon"></i> 3. 4-Corner Draggable Polygon ROI Calibration</h4>
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
-                    Because real-world surveillance cameras are tilted at perspective angles, shelves are rarely perfect rectangles. AegisVision features an interactive 4-corner polygon calibration canvas:
+                <h4><i class="fa-solid fa-draw-polygon"></i> 3. 4-Corner Draggable Polygon ROI Calibration & Visual Guide</h4>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.25rem;">
+                    Because real-world surveillance cameras are tilted at perspective angles, shelves are rarely perfect rectangles. AegisVision features an interactive 4-corner polygon calibration canvas allowing operators to shape ROIs to exact physical shelving lines:
                 </p>
+
+                <!-- VISUAL ROI CALIBRATION BLUEPRINT -->
+                <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem; text-align: center; box-shadow: var(--shadow-sm);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem; text-align: left; flex-wrap: wrap; gap: 0.5rem;">
+                        <div>
+                            <strong style="font-size: 0.95rem; color: #0f172a;"><i class="fa-solid fa-camera-viewfinder text-blue"></i> CCTV Multi-Zone Placement Blueprint</strong>
+                            <span style="display: block; font-size: 0.8rem; color: var(--text-muted);">Recommended calibration for overhead angled supermarket CCTV feeds</span>
+                        </div>
+                        <span class="badge-shelf" style="padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700;">Calibrated Perspective View</span>
+                    </div>
+                    <img 
+                        src="/cctv_roi_guide.jpg" 
+                        alt="CCTV Supermarket ROI Calibration Guide" 
+                        style="width: 100%; max-width: 860px; height: auto; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 4px 15px rgba(0,0,0,0.06); display: inline-block;"
+                    />
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin-top: 1rem; text-align: left;">
+                        <div style="background: var(--accent-amber-light); border: 1px solid var(--accent-amber-border); padding: 0.75rem; border-radius: 6px;">
+                            <strong style="color: var(--accent-amber); font-size: 0.82rem; display: block;">1. Yellow Shelf Pick Zone</strong>
+                            <span style="font-size: 0.75rem; color: var(--text-secondary);">Draw over product merchandise shelves where customers reach to pick items.</span>
+                        </div>
+                        <div style="background: var(--accent-red-light); border: 1px solid var(--accent-red-border); padding: 0.75rem; border-radius: 6px;">
+                            <strong style="color: var(--accent-red); font-size: 0.82rem; display: block;">2. Red Concealment ROI</strong>
+                            <span style="font-size: 0.75rem; color: var(--text-secondary);">Draw along customer lower body / coat / personal bag area to detect pocketing.</span>
+                        </div>
+                        <div style="background: var(--accent-cyan-light); border: 1px solid var(--accent-cyan-border); padding: 0.75rem; border-radius: 6px;">
+                            <strong style="color: var(--accent-cyan); font-size: 0.82rem; display: block;">3. Cyan Checkout Plane</strong>
+                            <span style="font-size: 0.75rem; color: var(--text-secondary);">Draw across barcode scanner surface and packing counter to verify scans.</span>
+                        </div>
+                        <div style="background: var(--accent-purple-light); border: 1px solid var(--accent-purple-border); padding: 0.75rem; border-radius: 6px;">
+                            <strong style="color: var(--accent-purple); font-size: 0.82rem; display: block;">4. Purple Blind Spot</strong>
+                            <span style="font-size: 0.75rem; color: var(--text-secondary);">Draw around secluded shelf corners to detect lingering & barcode peeling.</span>
+                        </div>
+                    </div>
+                </div>
 
                 <table class="doc-table">
                     <thead>

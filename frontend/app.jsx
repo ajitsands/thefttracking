@@ -242,11 +242,21 @@ function App() {
     // Activate Camera
     const handleActivateCamera = async (camId) => {
         try {
-            await fetch(`/api/cameras/${camId}/activate`, { method: 'POST' });
-            fetchCameras();
-            fetchStats();
+            const res = await fetch(`/api/cameras/${camId}/activate`, { method: 'POST' });
+            const data = await res.json();
+            if (data.camera) {
+                setStats(prev => ({
+                    ...prev,
+                    active_camera: data.camera.name,
+                    active_source: data.camera.source
+                }));
+            }
+            setSelectedZoneCameraId(Number(camId));
+            await fetchCameras();
+            await fetchStats();
+            await fetchZones(Number(camId));
             setStreamTimestamp(Date.now());
-            showNotification('Switched active camera feed successfully!', 'success');
+            showNotification(`Switched active feed to: ${data.camera ? data.camera.name : 'Camera ' + camId}`, 'success');
         } catch (e) {
             showNotification('Error activating camera feed.', 'error');
         }
@@ -728,9 +738,8 @@ function App() {
                         zones={zones}
                         cameras={cameras}
                         selectedZoneCameraId={selectedZoneCameraId || (cameras.find(c => c.is_active) ? cameras.find(c => c.is_active).id : 1)}
-                        onSelectZoneCamera={(camId) => {
-                            setSelectedZoneCameraId(camId);
-                            fetchZones(camId);
+                        onSelectZoneCamera={async (camId) => {
+                            await handleActivateCamera(camId);
                         }}
                         streamTimestamp={streamTimestamp}
                         engineState={stats.engine_state}
@@ -1130,7 +1139,8 @@ function DashboardTab({ stats, events, cameras, isArmed, streamTimestamp, onActi
                     </div>
                     <div className="cctv-player-container">
                         <img
-                            src={`/api/video_feed?${streamTimestamp}`}
+                            key={`dash-cctv-${streamTimestamp}`}
+                            src={`/api/video_feed?t=${streamTimestamp}`}
                             alt="Live CCTV"
                             className="stream-feed-img"
                         />
@@ -1149,15 +1159,15 @@ function DashboardTab({ stats, events, cameras, isArmed, streamTimestamp, onActi
                     </div>
                     <div className="panel-footer d-flex align-items-center justify-content-between">
                         <div className="d-flex align-items-center gap-1 font-xs">
-                            <label className="text-muted">Camera:</label>
+                            <label className="text-muted">Active AI Camera:</label>
                             <select
                                 className="form-select"
-                                style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                                style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.75rem', fontWeight: 700 }}
                                 value={(cameras.find(c => c.is_active) || {}).id || ''}
-                                onChange={(e) => onActivateCamera(e.target.value)}
+                                onChange={(e) => onActivateCamera(Number(e.target.value))}
                             >
                                 {cameras.map(c => (
-                                    <option key={c.id} value={c.id}>{c.name} ({c.camera_type})</option>
+                                    <option key={c.id} value={c.id}>{c.name} {c.is_active ? '🟢 (LIVE)' : ''} &bull; {c.camera_type}</option>
                                 ))}
                             </select>
                         </div>
@@ -1251,7 +1261,8 @@ function LiveMonitorTab({ stats, cameras, streamTimestamp, onActivateCamera, onT
                     </div>
                     <div className="cctv-player-container" style={{ minHeight: '440px' }}>
                         <img
-                            src={`/api/video_feed?${streamTimestamp}`}
+                            key={`live-cctv-${streamTimestamp}`}
+                            src={`/api/video_feed?t=${streamTimestamp}`}
                             alt="CCTV Primary Stream"
                             className="stream-feed-img"
                             style={{ maxHeight: '440px' }}
@@ -1938,7 +1949,8 @@ function ZoneEditorTab({ zones, cameras = [], selectedZoneCameraId, onSelectZone
                 {/* Interactive Video & SVG Overlay Container */}
                 <div className="zone-interactive-container">
                     <img
-                        src={`/api/cameras/${activeCamera.id}/video_feed?${streamTimestamp}`}
+                        key={`zone-cam-${activeCamera.id}-${streamTimestamp}`}
+                        src={`/api/cameras/${activeCamera.id}/video_feed?t=${streamTimestamp}`}
                         alt="Zone Calibration Live Feed"
                         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                     />
@@ -2420,7 +2432,8 @@ function MultiCamMatrixTab({ cameras = [], stats = {}, events = [], streamTimest
 
                             {/* Camera Live Stream Video Feed */}
                             <img
-                                src={`/api/cameras/${c.id}/video_feed?${streamTimestamp}`}
+                                key={`matrix-tile-${c.id}-${streamTimestamp}`}
+                                src={`/api/cameras/${c.id}/video_feed?t=${streamTimestamp}`}
                                 alt={c.name}
                                 className="matrix-stream-img"
                                 onClick={() => onActivateCamera(c.id)}
@@ -2768,9 +2781,11 @@ function ReportsTab() {
 // TAB 7: HELP & REFERENCE MANUAL
 // -------------------------------------------------------------
 function HelpTab() {
+    const [showVisualGuide, setShowVisualGuide] = useState(false);
+
     return (
         <div className="tab-content" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)', gap: '0.65rem' }}>
-            <div className="panel-card" style={{ padding: '0.65rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="panel-card" style={{ padding: '0.65rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <div className="d-flex align-items-center gap-2">
                     <i className="fa-solid fa-circle-question text-blue" style={{ fontSize: '1.25rem' }}></i>
                     <div>
@@ -2778,7 +2793,14 @@ function HelpTab() {
                         <div className="text-muted font-xs">4 Behavior Roles &bull; 4-Corner Draggable ROI &bull; Dynamic Confidence &bull; RTSP Setup</div>
                     </div>
                 </div>
-                <div className="d-flex gap-1">
+                <div className="d-flex gap-1 align-items-center">
+                    <button
+                        className={`btn btn-xs ${showVisualGuide ? 'btn-primary' : 'btn-outline'}`}
+                        onClick={() => setShowVisualGuide(!showVisualGuide)}
+                        title="Toggle CCTV 4-Corner ROI Placement Blueprint"
+                    >
+                        <i className="fa-solid fa-camera-viewfinder"></i> {showVisualGuide ? 'Hide ROI Map' : '📸 View ROI Guide Map'}
+                    </button>
                     <a
                         href="/documentation.html"
                         target="_blank"
@@ -2788,7 +2810,7 @@ function HelpTab() {
                         <i className="fa-solid fa-arrow-up-right-from-square"></i> Open in New Tab
                     </a>
                     <button
-                        className="btn btn-xs btn-primary"
+                        className="btn btn-xs btn-secondary"
                         onClick={() => {
                             const iframe = document.getElementById('help-doc-frame');
                             if (iframe && iframe.contentWindow) {
@@ -2798,10 +2820,32 @@ function HelpTab() {
                             }
                         }}
                     >
-                        <i className="fa-solid fa-print"></i> Print / Save PDF
+                        <i className="fa-solid fa-print"></i> Print PDF
                     </button>
                 </div>
             </div>
+
+            {showVisualGuide && (
+                <div className="panel-card p-3 mb-1" style={{ backgroundColor: '#ffffff', border: '2px solid var(--accent-blue)', borderRadius: '12px' }}>
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                        <div>
+                            <strong className="text-blue font-sm"><i className="fa-solid fa-draw-polygon"></i> Supermarket CCTV 4-Corner Zone Blueprint (cctv_roi_guide.jpg)</strong>
+                            <span className="text-muted font-xs d-block">Recommended calibration coordinates for angled aisle cameras</span>
+                        </div>
+                        <button className="btn btn-xs btn-outline" onClick={() => setShowVisualGuide(false)}>
+                            <i className="fa-solid fa-xmark"></i> Close
+                        </button>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                        <img 
+                            src="/cctv_roi_guide.jpg" 
+                            alt="CCTV ROI Guide Map" 
+                            style={{ maxWidth: '100%', maxHeight: '380px', borderRadius: '8px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-md)' }} 
+                        />
+                    </div>
+                </div>
+            )}
+
             <div style={{ flex: 1, backgroundColor: '#ffffff', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
                 <iframe
                     id="help-doc-frame"
