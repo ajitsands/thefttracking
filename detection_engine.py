@@ -207,10 +207,9 @@ class MultiSourceStreamHub:
             elif source.startswith("http://") or source.startswith("https://"):
                 return HTTPSnapshotReader(source)
             else:
-                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|threads;1|fflags;nobuffer|flags;low_delay"
+                # Fast timeout (2.5s) for RTSP streams to prevent ffmpeg thread blocking
+                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|threads;1|fflags;nobuffer|flags;low_delay|stimeout;2500000"
                 cap = cv2.VideoCapture(source, cv2.CAP_FFMPEG)
-                if not cap.isOpened():
-                    cap = cv2.VideoCapture(source)
                 if cap and cap.isOpened():
                     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
                     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
