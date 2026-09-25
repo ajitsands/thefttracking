@@ -85,7 +85,7 @@ function App() {
     // Fetch Stats & Event Polling
     const fetchStats = useCallback(async () => {
         try {
-            const res = await fetch('/api/stats');
+            const res = await fetch(`/api/stats?t=${Date.now()}`);
             const data = await res.json();
             setStats(data);
         } catch (e) {
@@ -95,7 +95,7 @@ function App() {
 
     const fetchEvents = useCallback(async (status = 'ALL', severity = 'ALL') => {
         try {
-            const res = await fetch(`/api/events?status=${status}&severity=${severity}&limit=40`);
+            const res = await fetch(`/api/events?status=${status}&severity=${severity}&limit=40&t=${Date.now()}`);
             const data = await res.json();
             const newEvents = data.events || [];
             setEvents(newEvents);
@@ -130,7 +130,7 @@ function App() {
 
     const fetchCameras = useCallback(async () => {
         try {
-            const res = await fetch('/api/cameras');
+            const res = await fetch(`/api/cameras?t=${Date.now()}`);
             const data = await res.json();
             setCameras(data.cameras || []);
         } catch (e) {
@@ -143,7 +143,7 @@ function App() {
     const fetchZones = useCallback(async (camId = null) => {
         try {
             const targetId = camId || selectedZoneCameraId;
-            const url = targetId ? `/api/zones?camera_id=${targetId}` : '/api/zones';
+            const url = targetId ? `/api/zones?camera_id=${targetId}&t=${Date.now()}` : `/api/zones?t=${Date.now()}`;
             const res = await fetch(url);
             const data = await res.json();
             setZones(data.zones || []);
@@ -161,9 +161,11 @@ function App() {
 
         const statsInterval = setInterval(fetchStats, 1500);
         const eventsInterval = setInterval(() => fetchEvents(), 2000);
+        const camerasInterval = setInterval(fetchCameras, 4000);
         return () => {
             clearInterval(statsInterval);
             clearInterval(eventsInterval);
+            clearInterval(camerasInterval);
         };
     }, [fetchStats, fetchEvents, fetchCameras, fetchZones]);
 
@@ -241,22 +243,31 @@ function App() {
 
     // Activate Camera
     const handleActivateCamera = async (camId) => {
+        const targetId = Number(camId);
+        
+        // Optimistic UI update: instantly update active camera in UI state
+        setCameras(prev => prev.map(c => ({
+            ...c,
+            is_active: c.id === targetId ? 1 : 0
+        })));
+        setSelectedZoneCameraId(targetId);
+
         try {
-            const res = await fetch(`/api/cameras/${camId}/activate`, { method: 'POST' });
+            const res = await fetch(`/api/cameras/${targetId}/activate?t=${Date.now()}`, { method: 'POST' });
             const data = await res.json();
             if (data.camera) {
                 setStats(prev => ({
                     ...prev,
+                    active_camera_id: data.camera.id,
                     active_camera: data.camera.name,
                     active_source: data.camera.source
                 }));
             }
-            setSelectedZoneCameraId(Number(camId));
             await fetchCameras();
             await fetchStats();
-            await fetchZones(Number(camId));
+            await fetchZones(targetId);
             setStreamTimestamp(Date.now());
-            showNotification(`Switched active feed to: ${data.camera ? data.camera.name : 'Camera ' + camId}`, 'success');
+            showNotification(`Switched active AI focus to: ${data.camera ? data.camera.name : 'Camera ' + targetId}`, 'success');
         } catch (e) {
             showNotification('Error activating camera feed.', 'error');
         }
@@ -1163,14 +1174,17 @@ function DashboardTab({ stats, events, cameras, isArmed, streamTimestamp, onActi
                             <select
                                 className="form-select"
                                 style={{ width: 'auto', padding: '0.25rem 0.5rem', fontSize: '0.75rem', fontWeight: 700 }}
-                                value={(cameras.find(c => Boolean(Number(c.is_active))) || cameras[0] || {}).id || ''}
+                                value={stats.active_camera_id || (cameras.find(c => Boolean(Number(c.is_active))) || cameras[0] || {}).id || ''}
                                 onChange={(e) => onActivateCamera(Number(e.target.value))}
                             >
-                                {cameras.map(c => (
-                                    <option key={c.id} value={c.id}>
-                                        {c.name} {Boolean(Number(c.is_active)) ? '🟢 (LIVE AI ACTIVE)' : ''} &bull; {c.camera_type}
-                                    </option>
-                                ))}
+                                {cameras.map(c => {
+                                    const isCurrentActive = c.id === stats.active_camera_id || (Boolean(Number(c.is_active)) && !stats.active_camera_id);
+                                    return (
+                                        <option key={c.id} value={c.id}>
+                                            {c.name} {isCurrentActive ? '🟢 (LIVE AI ACTIVE)' : ''} &bull; {c.camera_type}
+                                        </option>
+                                    );
+                                })}
                             </select>
                         </div>
                         <button className="btn btn-xs btn-danger" onClick={onTriggerTest}>
@@ -1253,7 +1267,7 @@ function DashboardTab({ stats, events, cameras, isArmed, streamTimestamp, onActi
                         gap: '12px'
                     }}>
                         {cameras.map(c => {
-                            const isPrimary = Boolean(Number(c.is_active));
+                            const isPrimary = (c.id === stats.active_camera_id) || (Boolean(Number(c.is_active)) && !stats.active_camera_id);
                             return (
                                 <div
                                     key={c.id}
@@ -1411,7 +1425,7 @@ function LiveMonitorTab({ stats, cameras, streamTimestamp, onActivateCamera, onT
                     <div className="panel-body">
                         <div className="d-flex flex-wrap gap-1">
                             {cameras.map(c => {
-                                const isActive = Boolean(Number(c.is_active));
+                                const isActive = (c.id === stats.active_camera_id) || (Boolean(Number(c.is_active)) && !stats.active_camera_id);
                                 return (
                                     <div
                                         key={c.id}
@@ -2611,7 +2625,7 @@ function MultiCamMatrixTab({ cameras = [], stats = {}, events = [], streamTimest
             ) : (
                 <div className={`matrix-grid ${gridLayout}`}>
                     {cameras.map(c => {
-                        const isPrimary = Boolean(Number(c.is_active));
+                        const isPrimary = (c.id === stats.active_camera_id) || (Boolean(Number(c.is_active)) && !stats.active_camera_id);
                         const recentAlert = recentAlertsByCam[c.id];
                         const isAlerting = Boolean(recentAlert);
 
